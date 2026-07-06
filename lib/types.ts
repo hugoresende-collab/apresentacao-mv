@@ -3,6 +3,7 @@ export type StatusSolicitacao = "solicitado" | "agendado" | "realizado" | "cance
 export interface SolicitacaoDemo {
   id: string;
   gerente_conta_nome: string;
+  gerente_conta_email: string;
   unidade_regional: string;
   nome_instituicao: string;
   natureza_instituicao: string;
@@ -20,10 +21,10 @@ export interface SolicitacaoDemo {
   numero_visitas: string | null;
   valor_aproximado_projeto: number | null;
   percentual_evolucao_crm: string | null;
-  atende_sus: 0 | 1;
-  atende_convenio_particular: 0 | 1;
-  possui_pronto_socorro: 0 | 1;
-  possui_ambulatorio: 0 | 1;
+  atende_sus: boolean;
+  atende_convenio_particular: boolean;
+  possui_pronto_socorro: boolean;
+  possui_ambulatorio: boolean;
   dor_prospect: string | null;
   problemas_atendimento_paciente: string | null;
   problemas_area_assistencial: string | null;
@@ -56,10 +57,10 @@ export interface NpsDemo {
 export interface ResultadoComercial {
   id: string;
   solicitacao_id: string;
-  proposta_gerada: 0 | 1;
-  proposta_fechada: 0 | 1;
+  proposta_gerada: boolean;
+  proposta_fechada: boolean;
   valor_proposta: number | null;
-  contrato_cancelado: 0 | 1;
+  contrato_cancelado: boolean;
   atualizado_por: string | null;
   data_atualizacao: string;
 }

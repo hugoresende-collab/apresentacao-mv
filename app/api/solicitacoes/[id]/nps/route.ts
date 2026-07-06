@@ -6,7 +6,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const existente = buscarSolicitacao(id);
+  const existente = await buscarSolicitacao(id);
   if (!existente) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
   }
@@ -18,6 +18,6 @@ export async function POST(
     return NextResponse.json({ error: "Nota deve ser um número entre 0 e 10" }, { status: 400 });
   }
 
-  const nps = registrarNps(id, { nota, comentario: body.comentario || null });
+  const nps = await registrarNps(id, { nota, comentario: body.comentario || null });
   return NextResponse.json({ nps });
 }

@@ -6,11 +6,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const solicitacao = buscarSolicitacao(id);
+  const solicitacao = await buscarSolicitacao(id);
   if (!solicitacao) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
   }
-  const nps = buscarNps(id);
-  const resultado = buscarResultadoComercial(id);
+  const nps = await buscarNps(id);
+  const resultado = await buscarResultadoComercial(id);
   return NextResponse.json({ solicitacao, nps, resultado });
 }

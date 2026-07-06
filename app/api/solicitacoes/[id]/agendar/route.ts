@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const existente = buscarSolicitacao(id);
+  const existente = await buscarSolicitacao(id);
   if (!existente) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
   }
@@ -22,7 +22,7 @@ export async function POST(
     );
   }
 
-  const solicitacao = agendarSolicitacao(id, {
+  const solicitacao = await agendarSolicitacao(id, {
     data_hora_agendada,
     agendado_por,
     link_ou_local: link_ou_local || null,

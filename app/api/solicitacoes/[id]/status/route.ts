@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const existente = buscarSolicitacao(id);
+  const existente = await buscarSolicitacao(id);
   if (!existente) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
   }
@@ -22,7 +22,7 @@ export async function POST(
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
   }
 
-  const solicitacao = atualizarStatus(id, status);
+  const solicitacao = await atualizarStatus(id, status);
 
   let emailResult;
   if (status === "realizado") {

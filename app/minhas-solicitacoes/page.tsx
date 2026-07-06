@@ -1,12 +1,12 @@
 import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
-import AgendarPageClient from "./AgendarPageClient";
+import MinhasSolicitacoesClient from "./MinhasSolicitacoesClient";
 
-export default async function AgendarPage() {
+export default async function MinhasSolicitacoesPage() {
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
   }
 
-  return <AgendarPageClient nomeUsuario={user.nome} />;
+  return <MinhasSolicitacoesClient />;
 }

@@ -1,7 +1,7 @@
 import type { SolicitacaoDemo } from "./types";
 
 const EMAIL_ENABLED = process.env.ENABLE_EMAIL === "true";
-const BARBARA_EMAIL = process.env.BARBARA_EMAIL || "barbara@mv.com.br";
+const ADMINISTRATIVO_EMAIL = process.env.ADMINISTRATIVO_EMAIL || "administrativo@mv.com.br";
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
 interface EmailPayload {
@@ -35,19 +35,36 @@ async function sendEmail(payload: EmailPayload): Promise<{ sent: boolean; reason
   return { sent: true };
 }
 
-export async function notificarNovaSolicitacao(solicitacao: SolicitacaoDemo) {
+function resumoSolicitacaoHtml(solicitacao: SolicitacaoDemo): string {
+  return `
+    <ul>
+      <li><b>Gerente de conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+      <li><b>Instituição:</b> ${solicitacao.nome_instituicao} (${solicitacao.cidade})</li>
+      <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+      <li><b>Data desejada:</b> ${solicitacao.data_desejada} (${solicitacao.periodo || "sem período definido"})</li>
+      <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
+    </ul>
+  `;
+}
+
+export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: SolicitacaoDemo) {
   return sendEmail({
-    to: BARBARA_EMAIL,
+    to: solicitacao.gerente_conta_email,
+    subject: `Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao}`,
+    html: `
+      <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time administrativo vai agendar em breve.</p>
+      ${resumoSolicitacaoHtml(solicitacao)}
+    `,
+  });
+}
+
+export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: SolicitacaoDemo) {
+  return sendEmail({
+    to: ADMINISTRATIVO_EMAIL,
     subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
     html: `
       <p>Nova solicitação de demonstração recebida.</p>
-      <ul>
-        <li><b>Gerente de conta:</b> ${solicitacao.gerente_conta_nome}</li>
-        <li><b>Instituição:</b> ${solicitacao.nome_instituicao} (${solicitacao.cidade})</li>
-        <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
-        <li><b>Data desejada:</b> ${solicitacao.data_desejada} (${solicitacao.periodo || "sem período definido"})</li>
-        <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
-      </ul>
+      ${resumoSolicitacaoHtml(solicitacao)}
       <p><a href="${APP_URL}/agendar">Agendar esta demonstração</a></p>
     `,
   });
@@ -55,7 +72,7 @@ export async function notificarNovaSolicitacao(solicitacao: SolicitacaoDemo) {
 
 export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDemo) {
   return sendEmail({
-    to: solicitacao.email_patrocinador || BARBARA_EMAIL,
+    to: solicitacao.gerente_conta_email,
     subject: `Demo agendada: ${solicitacao.nome_instituicao}`,
     html: `
       <p>Sua solicitação de demonstração foi agendada.</p>
@@ -70,7 +87,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
 
 export async function solicitarNps(solicitacao: SolicitacaoDemo) {
   return sendEmail({
-    to: solicitacao.email_patrocinador || BARBARA_EMAIL,
+    to: solicitacao.gerente_conta_email,
     subject: `Como foi a demonstração? ${solicitacao.nome_instituicao}`,
     html: `
       <p>A demonstração para ${solicitacao.nome_instituicao} foi realizada. Conte pra gente como foi:</p>

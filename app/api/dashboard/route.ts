@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { listarSolicitacoes, listarNps, listarResultadosComerciais } from "@/lib/repo";
 
 export async function GET() {
-  const solicitacoes = listarSolicitacoes();
-  const npsList = listarNps();
-  const resultados = listarResultadosComerciais();
+  const [solicitacoes, npsList, resultados] = await Promise.all([
+    listarSolicitacoes(),
+    listarNps(),
+    listarResultadosComerciais(),
+  ]);
 
   const total = solicitacoes.length;
   const porStatus = {
@@ -28,11 +30,11 @@ export async function GET() {
   const neutros = npsList.filter((n) => n.nota >= 7 && n.nota <= 8).length;
   const detratores = npsList.filter((n) => n.nota <= 6).length;
 
-  const propostasGeradas = resultados.filter((r) => r.proposta_gerada === 1).length;
-  const propostasFechadas = resultados.filter((r) => r.proposta_fechada === 1).length;
-  const contratosCancelados = resultados.filter((r) => r.contrato_cancelado === 1).length;
+  const propostasGeradas = resultados.filter((r) => Boolean(r.proposta_gerada)).length;
+  const propostasFechadas = resultados.filter((r) => Boolean(r.proposta_fechada)).length;
+  const contratosCancelados = resultados.filter((r) => Boolean(r.contrato_cancelado)).length;
   const valorTotalFechado = resultados
-    .filter((r) => r.proposta_fechada === 1 && r.valor_proposta)
+    .filter((r) => Boolean(r.proposta_fechada) && r.valor_proposta)
     .reduce((acc, r) => acc + (r.valor_proposta || 0), 0);
 
   const porUnidadeRegional: Record<string, number> = {};
