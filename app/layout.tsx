@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 };
 
 const NAV_ITEMS = [
-  { href: "/", label: "Nova solicitação" },
-  { href: "/minhas-solicitacoes", label: "Minhas solicitações" },
+  { href: "/", label: "Nova demonstração" },
+  { href: "/minhas-solicitacoes", label: "Minhas demonstrações" },
   { href: "/gestao", label: "Gestão" },
   { href: "/dashboard", label: "Dashboard" },
 ];
@@ -54,7 +54,7 @@ export default async function RootLayout({
                 />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-[#008C77] text-sm truncate">Solicitações de Demo</p>
+                <p className="font-semibold text-[#008C77] text-sm truncate">Demonstração</p>
                 <p className="text-xs text-gray-500">Área Hospitalar</p>
               </div>
             </div>
