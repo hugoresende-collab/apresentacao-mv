@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Image from "next/image";
 import { getSessionUser } from "@/lib/session";
 import { NpsPendenteFetcher } from "@/components/NpsPendenteFetcher";
 import "./globals.css";
@@ -39,32 +40,42 @@ export default async function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-row bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-row bg-gray-50 text-slate-900">
         {user && <NpsPendenteFetcher />}
         {user && (
-          <aside className="w-48 border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0">
-            <div className="border-b border-slate-200 p-4">
-              <p className="font-semibold text-slate-800 text-sm">Solicitações de Demonstrações</p>
-              <p className="text-xs text-slate-500">Área Hospitalar</p>
+          <aside className="w-48 border-r border-gray-200 bg-white flex flex-col h-screen sticky top-0">
+            <div className="border-b border-gray-200 p-4 flex items-center gap-3">
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <Image
+                  src="/logo.webp"
+                  alt="MV Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-[#008C77] text-sm truncate">Solicitações de Demo</p>
+                <p className="text-xs text-gray-500">Área Hospitalar</p>
+              </div>
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1">
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
+                  className="block px-3 py-2 text-xs font-medium text-gray-600 hover:bg-blue-50 hover:text-[#214B63] rounded-md transition-colors"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <div className="border-t border-slate-200 p-3 space-y-2">
+            <div className="border-t border-gray-200 p-3 space-y-2">
               <div className="text-xs px-3">
-                <p className="font-semibold text-slate-700">{user.nome}</p>
-                <p className="text-slate-500 truncate">{user.email}</p>
+                <p className="font-semibold text-[#214B63]">{user.nome}</p>
+                <p className="text-gray-500 truncate text-xs">{user.email}</p>
               </div>
               <form action="/api/auth/logout" method="POST">
-                <button type="submit" className="w-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors text-left">
+                <button type="submit" className="w-full px-3 py-2 text-xs font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors text-left">
                   Sair
                 </button>
               </form>
