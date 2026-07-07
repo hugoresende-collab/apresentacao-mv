@@ -43,6 +43,8 @@ export interface SolicitacaoDemo {
   data_hora_agendada: string | null;
   agendado_por: string | null;
   link_ou_local: string | null;
+  apresentador: string | null;
+  data_hora_realizada: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -145,3 +147,9 @@ export const NUMERO_VISITAS_OPCOES = [
 export const TIPOS_APRESENTACAO = ["Remota", "Presencial"] as const;
 
 export const PERIODOS = ["Manhã", "Tarde", "Dia todo"] as const;
+
+export const APRESENTADORES = [
+  "Rafael Bloise",
+  "Especialista MV 1",
+  "Especialista MV 2",
+] as const;

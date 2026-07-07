@@ -41,10 +41,13 @@ create table if not exists solicitacoes_demo (
   horario_inicio_desejado text,
   horario_fim_desejado text,
   observacoes text,
-  status text not null default 'solicitado' check (status in ('solicitado', 'agendado', 'realizado', 'cancelado')),
+  status text not null default 'solicitado' check (status in ('solicitado', 'demo agendada', 'realizada', 'cancelada')),
   data_hora_agendada text,
   agendado_por text,
   link_ou_local text,
+  apresentador text,
+  data_hora_realizada timestamptz,
+  endereco_apresentacao text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

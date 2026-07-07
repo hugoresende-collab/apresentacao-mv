@@ -107,12 +107,23 @@ export async function agendarSolicitacao(
 
 export async function atualizarStatus(
   id: string,
-  status: StatusSolicitacao
+  status: StatusSolicitacao,
+  apresentador?: string | null
 ): Promise<SolicitacaoDemo | undefined> {
   const db = getDb();
+  const update: any = { status, updated_at: nowIso() };
+
+  if (status === "realizada") {
+    update.data_hora_realizada = nowIso();
+  }
+
+  if (apresentador) {
+    update.apresentador = apresentador;
+  }
+
   const result = await db
     .from("solicitacoes_demo")
-    .update({ status, updated_at: nowIso() })
+    .update(update)
     .eq("id", id)
     .select()
     .maybeSingle();

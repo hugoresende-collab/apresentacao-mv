@@ -5,6 +5,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput } from "@/components/FormField";
 import type { SolicitacaoDemo, StatusSolicitacao } from "@/lib/types";
+import { APRESENTADORES } from "@/lib/types";
 
 export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string }) {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[]>([]);
@@ -75,6 +76,7 @@ function SolicitacaoCard({
   const [dataHora, setDataHora] = useState(solicitacao.data_hora_agendada?.slice(0, 16) || "");
   const [agendadoPor, setAgendadoPor] = useState(solicitacao.agendado_por || nomeUsuario);
   const [linkOuLocal, setLinkOuLocal] = useState(solicitacao.link_ou_local || "");
+  const [apresentador, setApresentador] = useState(solicitacao.apresentador || "");
   const [salvando, setSalvando] = useState(false);
   const [confirmaCancelar, setConfirmaCancelar] = useState(false);
 
@@ -83,6 +85,7 @@ function SolicitacaoCard({
     setDataHora(initialSolicitacao.data_hora_agendada?.slice(0, 16) || "");
     setAgendadoPor(initialSolicitacao.agendado_por || nomeUsuario);
     setLinkOuLocal(initialSolicitacao.link_ou_local || "");
+    setApresentador(initialSolicitacao.apresentador || "");
   }, [initialSolicitacao, nomeUsuario]);
 
   async function handleAgendar() {
@@ -105,10 +108,14 @@ function SolicitacaoCard({
 
   async function handleStatus(status: StatusSolicitacao) {
     setSalvando(true);
+    const body: any = { status };
+    if (status === "realizada" && apresentador) {
+      body.apresentador = apresentador;
+    }
     const res = await fetch(`/api/solicitacoes/${solicitacao.id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     setSolicitacao(data.solicitacao);
@@ -161,23 +168,45 @@ function SolicitacaoCard({
           </dl>
 
           {solicitacao.status !== "cancelada" && (
-            <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-700">Data/hora agendada</span>
-                <TextInput
-                  type="datetime-local"
-                  value={dataHora}
-                  onChange={(e) => setDataHora(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-700">Agendado por</span>
-                <TextInput value={agendadoPor} onChange={(e) => setAgendadoPor(e.target.value)} />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-700">Link ou local</span>
-                <TextInput value={linkOuLocal} onChange={(e) => setLinkOuLocal(e.target.value)} />
-              </label>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-700">Data/hora agendada</span>
+                  <TextInput
+                    type="datetime-local"
+                    value={dataHora}
+                    onChange={(e) => setDataHora(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-700">Agendado por</span>
+                  <TextInput value={agendadoPor} onChange={(e) => setAgendadoPor(e.target.value)} />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-700">Link ou local</span>
+                  <TextInput value={linkOuLocal} onChange={(e) => setLinkOuLocal(e.target.value)} />
+                </label>
+              </div>
+
+              {solicitacao.status === "demo agendada" && (
+                <div className="rounded-md bg-blue-50 p-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-slate-700">Apresentador *</span>
+                    <select
+                      value={apresentador}
+                      onChange={(e) => setApresentador(e.target.value)}
+                      className="rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Selecione um apresentador</option>
+                      {APRESENTADORES.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
             </div>
           )}
 
