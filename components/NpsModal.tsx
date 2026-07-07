@@ -28,14 +28,20 @@ export function NpsModal({ isOpen, solicitacaoId, nomeInstituicao, onClose }: Np
 
       if (res.ok) {
         setEnviado(true);
-        setTimeout(onClose, 1500);
+        setTimeout(() => {
+          setNota(null);
+          setComentario("");
+          setEnviado(false);
+          onClose();
+        }, 1500);
       } else {
         console.error("Erro ao enviar NPS:", await res.json());
+        setEnviando(false);
       }
     } catch (error) {
       console.error("Erro ao enviar NPS:", error);
+      setEnviando(false);
     }
-    setEnviando(false);
   };
 
 

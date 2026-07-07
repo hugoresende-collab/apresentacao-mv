@@ -11,21 +11,31 @@ export function NpsPendenteFetcher() {
   } | null>(null);
   const [carregando, setCarregando] = useState(true);
 
-  useEffect(() => {
-    const verificarNps = async () => {
-      try {
-        const res = await fetch("/api/solicitacoes/nps-pendente");
-        const data = await res.json();
-        setNpsPendente(data.nps_pendente);
-      } catch (error) {
-        console.error("Erro ao verificar NPS pendente:", error);
-      } finally {
-        setCarregando(false);
-      }
-    };
+  const verificarNps = async () => {
+    try {
+      const res = await fetch("/api/solicitacoes/nps-pendente");
+      const data = await res.json();
+      setNpsPendente(data.nps_pendente);
+    } catch (error) {
+      console.error("Erro ao verificar NPS pendente:", error);
+    }
+  };
 
-    verificarNps();
+  useEffect(() => {
+    const carregar = async () => {
+      await verificarNps();
+      setCarregando(false);
+    };
+    carregar();
   }, []);
+
+  const handleClose = () => {
+    setNpsPendente(null);
+    // Recarrega a query após fechar o modal
+    setTimeout(() => {
+      verificarNps();
+    }, 2000);
+  };
 
   if (carregando) return null;
 
@@ -34,7 +44,7 @@ export function NpsPendenteFetcher() {
       isOpen={!!npsPendente}
       solicitacaoId={npsPendente?.id || ""}
       nomeInstituicao={npsPendente?.nome_instituicao || ""}
-      onClose={() => setNpsPendente(null)}
+      onClose={handleClose}
     />
   );
 }
