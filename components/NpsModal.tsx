@@ -28,12 +28,7 @@ export function NpsModal({ isOpen, solicitacaoId, nomeInstituicao, onClose }: Np
 
       if (res.ok) {
         setEnviado(true);
-        setTimeout(() => {
-          setNota(null);
-          setComentario("");
-          setEnviado(false);
-          onClose();
-        }, 1500);
+        setTimeout(onClose, 1500);
       } else {
         console.error("Erro ao enviar NPS:", await res.json());
       }
@@ -43,9 +38,6 @@ export function NpsModal({ isOpen, solicitacaoId, nomeInstituicao, onClose }: Np
     setEnviando(false);
   };
 
-  const handlePular = () => {
-    onClose();
-  };
 
   if (!isOpen) return null;
 
@@ -100,13 +92,6 @@ export function NpsModal({ isOpen, solicitacaoId, nomeInstituicao, onClose }: Np
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button
-            onClick={handlePular}
-            disabled={enviando}
-            className="rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
-          >
-            Pular por agora
-          </button>
           <button
             onClick={handleSubmit}
             disabled={enviando || nota === null}
