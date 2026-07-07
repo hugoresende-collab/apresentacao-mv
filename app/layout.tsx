@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/session";
+import { NpsPendenteFetcher } from "@/components/NpsPendenteFetcher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 const NAV_ITEMS = [
   { href: "/", label: "Nova solicitação" },
   { href: "/minhas-solicitacoes", label: "Minhas solicitações" },
-  { href: "/agendar", label: "Agendar" },
+  { href: "/gestao", label: "Gestão" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 
@@ -38,33 +39,39 @@ export default async function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-row bg-slate-50 text-slate-900">
+        {user && <NpsPendenteFetcher />}
         {user && (
-          <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-              <span className="font-semibold text-slate-800">Solicitação de Demonstrações</span>
-              <nav className="flex items-center gap-4 text-sm">
-                {NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-slate-600 hover:text-slate-900 hover:underline"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-500">{user.nome}</span>
-                <form action="/api/auth/logout" method="POST">
-                  <button type="submit" className="text-slate-600 hover:text-slate-900 hover:underline">
-                    Sair
-                  </button>
-                </form>
-              </nav>
+          <aside className="w-48 border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0">
+            <div className="border-b border-slate-200 p-4">
+              <p className="font-semibold text-slate-800 text-sm">Solicitações de Demonstrações</p>
+              <p className="text-xs text-slate-500">Área Hospitalar</p>
             </div>
-          </header>
+            <nav className="flex-1 px-3 py-4 space-y-1">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="border-t border-slate-200 p-3 space-y-2">
+              <div className="text-xs px-3">
+                <p className="font-semibold text-slate-700">{user.nome}</p>
+                <p className="text-slate-500 truncate">{user.email}</p>
+              </div>
+              <form action="/api/auth/logout" method="POST">
+                <button type="submit" className="w-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors text-left">
+                  Sair
+                </button>
+              </form>
+            </div>
+          </aside>
         )}
-        <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
+        <main className="flex-1 px-8 py-8">{children}</main>
       </body>
     </html>
   );

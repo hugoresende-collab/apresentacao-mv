@@ -1,4 +1,4 @@
-export type StatusSolicitacao = "solicitado" | "agendado" | "realizado" | "cancelado";
+export type StatusSolicitacao = "solicitado" | "demo agendada" | "realizada" | "cancelada";
 
 export interface SolicitacaoDemo {
   id: string;
@@ -33,6 +33,7 @@ export interface SolicitacaoDemo {
   problemas_financeiro_contabil: string | null;
   problemas_diagnostico_terapia: string | null;
   tipo_apresentacao: string;
+  endereco_apresentacao: string | null;
   data_desejada: string;
   periodo: string | null;
   horario_inicio_desejado: string | null;

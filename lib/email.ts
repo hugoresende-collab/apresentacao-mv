@@ -1,7 +1,7 @@
 import type { SolicitacaoDemo } from "./types";
 
 const EMAIL_ENABLED = process.env.ENABLE_EMAIL === "true";
-const ADMINISTRATIVO_EMAIL = process.env.ADMINISTRATIVO_EMAIL || "administrativo@mv.com.br";
+const ADMINISTRATIVO_EMAILS = (process.env.ADMINISTRATIVO_EMAILS || "administrativo@mv.com.br").split(",").map(e => e.trim());
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
 interface EmailPayload {
@@ -59,15 +59,19 @@ export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: Solicit
 }
 
 export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: SolicitacaoDemo) {
-  return sendEmail({
-    to: ADMINISTRATIVO_EMAIL,
-    subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
-    html: `
-      <p>Nova solicitação de demonstração recebida.</p>
-      ${resumoSolicitacaoHtml(solicitacao)}
-      <p><a href="${APP_URL}/agendar">Agendar esta demonstração</a></p>
-    `,
-  });
+  const promises = ADMINISTRATIVO_EMAILS.map(email =>
+    sendEmail({
+      to: email,
+      subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
+      html: `
+        <p>Nova solicitação de demonstração recebida.</p>
+        ${resumoSolicitacaoHtml(solicitacao)}
+        <p><a href="${APP_URL}/agendar">Agendar esta demonstração</a></p>
+      `,
+    })
+  );
+  const results = await Promise.all(promises);
+  return { sent: results.every(r => r.sent) };
 }
 
 export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDemo) {
@@ -90,8 +94,16 @@ export async function solicitarNps(solicitacao: SolicitacaoDemo) {
     to: solicitacao.gerente_conta_email,
     subject: `Como foi a demonstração? ${solicitacao.nome_instituicao}`,
     html: `
-      <p>A demonstração para ${solicitacao.nome_instituicao} foi realizada. Conte pra gente como foi:</p>
-      <p><a href="${APP_URL}/nps/${solicitacao.id}">Responder pesquisa de satisfação</a></p>
+      <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
+      <p>A demonstração para <b>${solicitacao.nome_instituicao}</b> foi realizada com sucesso.</p>
+      <p>Gostaríamos de saber como foi sua experiência:</p>
+      <ul>
+        <li>A demonstração atendeu a todos os requisitos?</li>
+        <li>Todas as necessidades da instituição foram cobertas?</li>
+        <li>Qual foi seu feedback geral sobre a apresentação?</li>
+      </ul>
+      <p><a href="${APP_URL}/nps/${solicitacao.id}">Avaliar agora</a></p>
+      <p>Sua avaliação nos ajuda a melhorar continuamente o atendimento.</p>
     `,
   });
 }

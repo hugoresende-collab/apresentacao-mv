@@ -1,12 +1,12 @@
 import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
-import AgendarPageClient from "./AgendarPageClient";
+import GestaoPageClient from "./GestaoPageClient";
 
-export default async function AgendarPage() {
+export default async function GestaoPage() {
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
   }
 
-  return <AgendarPageClient nomeUsuario={user.nome} />;
+  return <GestaoPageClient nomeUsuario={user.nome} />;
 }

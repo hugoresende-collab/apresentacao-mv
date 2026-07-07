@@ -50,6 +50,7 @@ function estadoInicial(nome: string, email: string) {
     problemas_financeiro_contabil: "",
     problemas_diagnostico_terapia: "",
     tipo_apresentacao: "",
+    endereco_apresentacao: "",
     data_desejada: "",
     periodo: "",
     horario_inicio_desejado: "",
@@ -141,25 +142,6 @@ export default function NovaSolicitacaoForm({
 
       <form onSubmit={handleSubmit} className={`space-y-8 ${enviado ? "pointer-events-none opacity-60" : ""}`}>
         <Secao titulo="Solicitante e instituição">
-          <FormField label="Seu nome (gerente de conta)" required>
-            <TextInput
-              required
-              readOnly
-              value={form.gerente_conta_nome}
-              onChange={(e) => update("gerente_conta_nome", e.target.value)}
-              className="bg-slate-100 text-slate-500"
-            />
-          </FormField>
-          <FormField label="Seu email (gerente de conta)" required>
-            <TextInput
-              type="email"
-              required
-              readOnly
-              value={form.gerente_conta_email}
-              onChange={(e) => update("gerente_conta_email", e.target.value)}
-              className="bg-slate-100 text-slate-500"
-            />
-          </FormField>
           <FormField label="Unidade regional" required>
             <Select
               required
@@ -389,7 +371,7 @@ export default function NovaSolicitacaoForm({
           </FormField>
         </Secao>
 
-        <Secao titulo="Logística da demonstração">
+        <Secao titulo="Agendamento">
           <FormField label="Tipo de apresentação" required>
             <Select
               required
@@ -398,6 +380,16 @@ export default function NovaSolicitacaoForm({
               onChange={(e) => update("tipo_apresentacao", e.target.value)}
             />
           </FormField>
+          {form.tipo_apresentacao === "Presencial" && (
+            <FormField label="Endereço" required>
+              <TextInput
+                required
+                value={form.endereco_apresentacao}
+                onChange={(e) => update("endereco_apresentacao", e.target.value)}
+                placeholder="Ex: Av. Paulista, 1000, São Paulo - SP"
+              />
+            </FormField>
+          )}
           <FormField label="Data desejada" required>
             <TextInput
               type="date"

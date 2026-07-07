@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionFromRequest } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/api/google/auth", "/api/google/callback"];
+const PUBLIC_PATHS = ["/login", "/api/google/auth", "/api/google/callback", "/termos-de-uso", "/politica-de-privacidade"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

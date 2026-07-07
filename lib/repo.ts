@@ -98,7 +98,7 @@ export async function agendarSolicitacao(
   const db = getDb();
   const result = await db
     .from("solicitacoes_demo")
-    .update({ ...data, status: "agendado", updated_at: nowIso() })
+    .update({ ...data, status: "demo agendada", updated_at: nowIso() })
     .eq("id", id)
     .select()
     .maybeSingle();

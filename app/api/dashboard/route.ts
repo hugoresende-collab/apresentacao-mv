@@ -11,17 +11,17 @@ export async function GET() {
   const total = solicitacoes.length;
   const porStatus = {
     solicitado: solicitacoes.filter((s) => s.status === "solicitado").length,
-    agendado: solicitacoes.filter((s) => s.status === "agendado").length,
-    realizado: solicitacoes.filter((s) => s.status === "realizado").length,
-    cancelado: solicitacoes.filter((s) => s.status === "cancelado").length,
+    "demo agendada": solicitacoes.filter((s) => s.status === "demo agendada").length,
+    realizada: solicitacoes.filter((s) => s.status === "realizada").length,
+    cancelada: solicitacoes.filter((s) => s.status === "cancelada").length,
   };
 
-  const baseTaxaRealizacao = porStatus.agendado + porStatus.realizado + porStatus.cancelado;
+  const baseTaxaRealizacao = porStatus["demo agendada"] + porStatus.realizada + porStatus.cancelada;
   const percentualRealizadas =
-    baseTaxaRealizacao > 0 ? (porStatus.realizado / baseTaxaRealizacao) * 100 : 0;
+    baseTaxaRealizacao > 0 ? (porStatus.realizada / baseTaxaRealizacao) * 100 : 0;
 
   const percentualNpsRespondido =
-    porStatus.realizado > 0 ? (npsList.length / porStatus.realizado) * 100 : 0;
+    porStatus.realizada > 0 ? (npsList.length / porStatus.realizada) * 100 : 0;
 
   const npsMedio =
     npsList.length > 0 ? npsList.reduce((acc, n) => acc + n.nota, 0) / npsList.length : null;
