@@ -149,7 +149,18 @@ export const TIPOS_APRESENTACAO = ["Remota", "Presencial"] as const;
 export const PERIODOS = ["Manhã", "Tarde", "Dia todo"] as const;
 
 export const APRESENTADORES = [
-  "Rafael Bloise",
-  "Especialista MV 1",
-  "Especialista MV 2",
+  "Valmir",
+  "Barbara Moutinho",
+  "Ana Mendonça",
+  "Gabriel Arcanjo",
+] as const;
+
+export const SOLUCOES_ATUAIS = [
+  "MV 2000",
+  "Soul MV",
+  "Soul Java Flex",
+  "Pixeon",
+  "DGS",
+  "Bionexo Tasy",
+  "TOTVS",
 ] as const;

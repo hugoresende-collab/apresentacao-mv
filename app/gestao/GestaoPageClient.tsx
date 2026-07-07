@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useLayoutEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput } from "@/components/FormField";
 import type { SolicitacaoDemo, StatusSolicitacao } from "@/lib/types";
@@ -28,10 +29,10 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Gestão de demonstrações</h1>
-        <p className="text-sm text-slate-600">Gerencie solicitações, confirme agendamentos e acompanhe status.</p>
-      </div>
+      <PageHeader
+        titulo="Gestão de demonstrações"
+        subtitulo="Gerencie solicitações, confirme agendamentos e acompanhe status."
+      />
 
       <div className="flex gap-2 text-sm">
         {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => (
@@ -97,6 +98,7 @@ function SolicitacaoCard({
         data_hora_agendada: dataHora,
         agendado_por: agendadoPor,
         link_ou_local: linkOuLocal,
+        apresentador: apresentador,
       }),
     });
     const data = await res.json();
@@ -188,7 +190,7 @@ function SolicitacaoCard({
                 </label>
               </div>
 
-              {solicitacao.status === "demo agendada" && (
+              {solicitacao.status === "solicitado" && (
                 <div className="rounded-md bg-blue-50 p-3">
                   <label className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-slate-700">Apresentador *</span>
@@ -214,7 +216,7 @@ function SolicitacaoCard({
             {solicitacao.status === "solicitado" && (
               <button
                 onClick={handleAgendar}
-                disabled={salvando || !dataHora}
+                disabled={salvando || !dataHora || !apresentador}
                 className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
               >
                 Confirmar agendamento

@@ -4,18 +4,18 @@ import LoginErrorBanner from "./LoginErrorBanner";
 
 export default function LoginPage() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col overflow-hidden" style={{ height: "80vh" }}>
       {/* Content principal - comprimido */}
       <div className="flex items-center justify-center px-4 py-4">
         <div className="w-full max-w-sm space-y-4">
           {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <Image src="/logo.webp" alt="Logo MV" width={80} height={80} className="h-16 w-auto" />
+          <div className="flex justify-center mb-5">
+            <Image src="/Soul Hospitalar Webp.webp" alt="Logo MV" width={69} height={69} style={{ height: "69px", width: "auto" }} />
           </div>
 
           {/* Card de login */}
-          <div className="space-y-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
-            <div className="text-center">
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+            <div className="text-center mb-4">
               <h1 className="text-lg font-semibold text-slate-900">Solicitação de Demonstrações</h1>
             </div>
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
               Entrar com Google
             </a>
 
-            <p className="text-center text-xs text-slate-600 mb-0">
+            <p className="text-center text-xs text-slate-600 mb-0 mt-4">
               Acesse com sua conta corporativa da MV.
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function LoginPage() {
       </div>
 
       {/* Footer links sticky no fundo */}
-      <div className="px-4 py-4 border-t border-slate-100 bg-slate-50">
+      <div className="px-4 mt-auto" style={{ paddingTop: "6rem", paddingBottom: "1rem" }}>
         <div className="flex justify-center gap-6 text-center">
           <a href="/termos-de-uso" className="text-xs text-slate-500 hover:text-slate-700 transition-colors">
             Termos de Uso

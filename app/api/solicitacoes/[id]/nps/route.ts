@@ -1,23 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buscarSolicitacao, registrarNps } from "@/lib/repo";
+import { getDb } from "@/lib/db";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const db = getDb();
+
+  const { data: nps, error } = await db
+    .from("nps_demo")
+    .select("id, nota, comentario, respondido_em")
+    .eq("solicitacao_id", id)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ nps });
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const existente = await buscarSolicitacao(id);
-  if (!existente) {
-    return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
-  }
-
   const body = await request.json();
-  const nota = Number(body.nota);
+  const { nota, comentario } = body;
 
-  if (Number.isNaN(nota) || nota < 0 || nota > 10) {
-    return NextResponse.json({ error: "Nota deve ser um número entre 0 e 10" }, { status: 400 });
+  if (nota === null || nota === undefined) {
+    return NextResponse.json(
+      { error: "nota é obrigatória" },
+      { status: 400 }
+    );
   }
 
-  const nps = await registrarNps(id, { nota, comentario: body.comentario || null });
+  const db = getDb();
+  const { data: nps, error } = await db
+    .from("nps_demo")
+    .insert({
+      solicitacao_id: id,
+      nota,
+      comentario: comentario || null,
+      respondido_em: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
   return NextResponse.json({ nps });
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/PageHeader";
 import { FormField, TextInput, TextArea, Select } from "@/components/FormField";
 import { SuccessToast } from "@/components/SuccessToast";
 import {
@@ -15,6 +16,7 @@ import {
   TIPOS_APRESENTACAO,
   PERIODOS,
   NUMERO_VISITAS_OPCOES,
+  SOLUCOES_ATUAIS,
 } from "@/lib/types";
 
 function estadoInicial(nome: string, email: string) {
@@ -133,12 +135,10 @@ export default function NovaSolicitacaoForm({
         />
       )}
 
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Solicitar demonstração</h1>
-        <p className="text-sm text-slate-600">
-          Preencha os dados abaixo. O administrativo receberá a solicitação e fará o agendamento.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Solicitar demonstração"
+        subtitulo="Preencha os dados abaixo. O administrativo receberá a solicitação e fará o agendamento."
+      />
 
       <form onSubmit={handleSubmit} className={`space-y-8 ${enviado ? "pointer-events-none opacity-60" : ""}`}>
         <Secao titulo="Solicitante e instituição">
@@ -188,10 +188,10 @@ export default function NovaSolicitacaoForm({
 
         <Secao titulo="Contexto comercial">
           <FormField label="Solução atual do prospect">
-            <TextInput
+            <Select
               value={form.solucao_atual}
               onChange={(e) => update("solucao_atual", e.target.value)}
-              placeholder="Ex: MV2000, TOTVS, Philips Tasy..."
+              options={SOLUCOES_ATUAIS}
             />
           </FormField>
           <FormField label="Tipo de oportunidade" required>
@@ -429,7 +429,7 @@ export default function NovaSolicitacaoForm({
         <button
           type="submit"
           disabled={enviando}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-md bg-[#008C77] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#007a66] active:bg-[#006652] disabled:opacity-50 transition-colors shadow-md hover:shadow-lg cursor-pointer"
         >
           {enviando ? "Enviando..." : "Enviar solicitação"}
         </button>

@@ -93,7 +93,7 @@ export async function buscarSolicitacao(id: string): Promise<SolicitacaoDemo | u
 
 export async function agendarSolicitacao(
   id: string,
-  data: { data_hora_agendada: string; agendado_por: string; link_ou_local: string | null }
+  data: { data_hora_agendada: string; agendado_por: string; link_ou_local: string | null; apresentador: string }
 ): Promise<SolicitacaoDemo | undefined> {
   const db = getDb();
   const result = await db

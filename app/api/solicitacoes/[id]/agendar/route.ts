@@ -13,11 +13,11 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { data_hora_agendada, agendado_por, link_ou_local } = body;
+  const { data_hora_agendada, agendado_por, link_ou_local, apresentador } = body;
 
-  if (!data_hora_agendada || !agendado_por) {
+  if (!data_hora_agendada || !agendado_por || !apresentador) {
     return NextResponse.json(
-      { error: "data_hora_agendada e agendado_por são obrigatórios" },
+      { error: "data_hora_agendada, agendado_por e apresentador são obrigatórios" },
       { status: 400 }
     );
   }
@@ -26,6 +26,7 @@ export async function POST(
     data_hora_agendada,
     agendado_por,
     link_ou_local: link_ou_local || null,
+    apresentador,
   });
 
   const emailResult = await notificarAgendamentoConfirmado(solicitacao!);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 
 interface DashboardData {
   resumo: any;
@@ -36,10 +37,10 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard de Demonstrações</h1>
-        <p className="text-sm text-gray-600">Métricas e performance</p>
-      </div>
+      <PageHeader
+        titulo="Dashboard"
+        subtitulo="Métricas e performance de demonstrações"
+      />
 
       {/* Abas */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
@@ -57,7 +58,7 @@ export default function DashboardClient() {
             onClick={() => setAba(tab.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               aba === tab.id
-                ? "border-[#008C77] text-[#008C77]"
+                ? "border-[#214B63] text-[#214B63]"
                 : "border-transparent text-gray-600 hover:text-[#214B63]"
             }`}
           >
@@ -98,7 +99,7 @@ function ResumoGeral({ dados, metricas }: any) {
           titulo="Realizadas"
           valor={dados.porStatus.realizada}
           subtitulo={`${dados.percentualNpsRespondido}% com NPS`}
-          cor="bg-green-50 text-[#008C77]"
+          cor="bg-green-50 text-[#214B63]"
         />
         <Card
           titulo="NPS Médio"
@@ -150,7 +151,7 @@ function ResumoGeral({ dados, metricas }: any) {
       {/* Ticket Médio */}
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <h3 className="font-semibold text-slate-900 mb-4">⏱️ Ticket Médio</h3>
-        <p className="text-3xl font-bold text-[#008C77]">
+        <p className="text-3xl font-bold text-[#214B63]">
           {metricas.ticketMedioDias ? `${metricas.ticketMedioDias} dias` : "N/A"}
         </p>
         <p className="text-sm text-gray-600">Tempo médio entre solicitação e demo realizada</p>

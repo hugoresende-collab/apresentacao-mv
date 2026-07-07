@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NpsModal } from "@/components/NpsModal";
 import type { SolicitacaoDemo } from "@/lib/types";
@@ -32,10 +33,10 @@ export default function MinhasSolicitacoesClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Minhas solicitações</h1>
-        <p className="text-sm text-slate-600">Acompanhe o status das demonstrações que você solicitou.</p>
-      </div>
+      <PageHeader
+        titulo="Minhas solicitações"
+        subtitulo="Acompanhe o status das demonstrações que você solicitou."
+      />
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 
@@ -63,8 +64,29 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
   const [solicitacao, setSolicitacao] = useState(initialSolicitacao);
   const [confirmaCancelar, setConfirmaCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
-  const [npsAberto, setNpsAberto] = useState(false);
-  const [npsRespondido, setNpsRespondido] = useState(false);
+  const [npsDados, setNpsDados] = useState<{ nota: number } | null>(null);
+  const [carregandoNps, setCarregandoNps] = useState(false);
+
+  useEffect(() => {
+    if (solicitacao.status === "realizada") {
+      carregarNps();
+    }
+  }, [solicitacao.id, solicitacao.status]);
+
+  async function carregarNps() {
+    setCarregandoNps(true);
+    try {
+      const res = await fetch(`/api/solicitacoes/${solicitacao.id}/nps`);
+      const data = await res.json();
+      if (data.nps) {
+        setNpsDados(data.nps);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar NPS:", error);
+    } finally {
+      setCarregandoNps(false);
+    }
+  }
 
   async function handleCancelar() {
     setCancelando(true);
@@ -136,12 +158,15 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
 
         <div className="mt-3 flex flex-wrap gap-2">
           {solicitacao.status === "realizada" && (
-            <Link
-              href={`/nps/${solicitacao.id}`}
-              className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700"
-            >
-              Responder NPS
-            </Link>
+            <div className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 flex items-center gap-1">
+              {carregandoNps ? "Carregando..." : npsDados ? (
+                <>
+                  Avaliação: <span className="font-semibold">{npsDados.nota}</span>/10
+                </>
+              ) : (
+                "Nenhuma avaliação registrada"
+              )}
+            </div>
           )}
           {solicitacao.status !== "cancelada" && solicitacao.status !== "realizada" && (
             <button

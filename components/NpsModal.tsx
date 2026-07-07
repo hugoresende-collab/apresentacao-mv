@@ -68,20 +68,23 @@ export function NpsModal({ isOpen, solicitacaoId, nomeInstituicao, onClose }: Np
         </p>
 
         <div className="mb-6">
-          <p className="text-sm font-medium text-slate-700 mb-3">Nota (1-5 estrelas)</p>
-          <div className="flex gap-2 justify-center">
-            {[1, 2, 3, 4, 5].map((num) => (
+          <p className="text-sm font-medium text-slate-700 mb-3">Nota (0-10)</p>
+          <div className="flex gap-2 justify-center flex-wrap">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <button
                 key={num}
                 onClick={() => setNota(num)}
-                className={`text-2xl transition-colors ${
-                  nota === num ? "text-yellow-400" : "text-slate-300 hover:text-yellow-300"
+                className={`w-10 h-10 rounded-md font-semibold transition-colors ${
+                  nota === num
+                    ? "bg-[#214B63] text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
-                ★
+                {num}
               </button>
             ))}
           </div>
+          <p className="text-xs text-slate-500 mt-2 text-center">0 = Não lhe agradou muito · 10 = Atendeu as expectativas</p>
         </div>
 
         <div className="mb-6">
