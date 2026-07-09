@@ -108,13 +108,18 @@ export async function agendarSolicitacao(
 export async function atualizarStatus(
   id: string,
   status: StatusSolicitacao,
-  apresentador?: string | null
+  apresentador?: string | null,
+  motivo_cancelamento?: string | null
 ): Promise<SolicitacaoDemo | undefined> {
   const db = getDb();
   const update: any = { status, updated_at: nowIso() };
 
   if (status === "realizada") {
     update.data_hora_realizada = nowIso();
+  }
+
+  if (status === "cancelada" && motivo_cancelamento) {
+    update.motivo_cancelamento = motivo_cancelamento;
   }
 
   if (apresentador) {

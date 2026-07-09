@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { isAdmin } from "@/lib/types";
 
 interface SidebarProps {
   user: {
@@ -11,15 +12,23 @@ interface SidebarProps {
   };
 }
 
-const NAV_ITEMS = [
+const ITEMS_COLABORADOR = [
+  { href: "/", label: "Nova demonstração" },
+  { href: "/minhas-solicitacoes", label: "Minhas demonstrações" },
+];
+
+const ITEMS_ADMIN = [
   { href: "/", label: "Nova demonstração" },
   { href: "/minhas-solicitacoes", label: "Minhas demonstrações" },
   { href: "/gestao", label: "Gestão" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/gerenciar-apresentadores", label: "Apresentadores" },
 ];
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const userIsAdmin = isAdmin(user.email);
+  const navItems = userIsAdmin ? ITEMS_ADMIN : ITEMS_COLABORADOR;
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -39,7 +48,7 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
       <nav className="flex-1 px-3 py-1 space-y-1">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

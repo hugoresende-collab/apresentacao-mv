@@ -1,4 +1,18 @@
 export type StatusSolicitacao = "solicitado" | "demo agendada" | "realizada" | "cancelada";
+export type UserRole = "colaborador" | "admin" | "apresentador";
+
+export interface Apresentador {
+  id: string;
+  nome: string;
+  email: string;
+  google_calendar_id: string | null;
+  google_calendar_token: string | null;
+  google_calendar_refresh_token: string | null;
+  autorizado_por: string | null;
+  data_autorizacao: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface SolicitacaoDemo {
   id: string;
@@ -45,6 +59,7 @@ export interface SolicitacaoDemo {
   link_ou_local: string | null;
   apresentador: string | null;
   data_hora_realizada: string | null;
+  motivo_cancelamento: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -153,6 +168,7 @@ export const APRESENTADORES = [
   "Barbara Moutinho",
   "Ana Mendonça",
   "Gabriel Arcanjo",
+  "produto teste",
 ] as const;
 
 export const SOLUCOES_ATUAIS = [
@@ -164,3 +180,15 @@ export const SOLUCOES_ATUAIS = [
   "Bionexo Tasy",
   "TOTVS",
 ] as const;
+
+export const ADMIN_EMAILS = [
+  "hugo.resende@mv.com.br",
+  "rafael.bloise@mv.com.br",
+  "valmir@mv.com.br",
+  "barbara.moutinho@mv.com.br",
+  "ana.mendonca@mv.com.br",
+] as const;
+
+export function isAdmin(email: string): boolean {
+  return ADMIN_EMAILS.includes(email as any);
+}

@@ -77,6 +77,13 @@ export default function NovaSolicitacaoForm({
   const [enviado, setEnviado] = useState(false);
   const qualificacaoObrigatoria = form.tipo_oportunidade === "Cliente Novo";
 
+  function getMinDataPresencial(): string {
+    const hoje = new Date();
+    const min = new Date(hoje);
+    min.setDate(min.getDate() + 10);
+    return min.toISOString().split("T")[0];
+  }
+
   function update<K extends keyof EstadoFormulario>(campo: K, valor: EstadoFormulario[K]) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
@@ -94,6 +101,19 @@ export default function NovaSolicitacaoForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+
+    // Validar 10 dias para demonstrações presenciais
+    if (form.tipo_apresentacao === "Presencial") {
+      const dataSelecionada = new Date(form.data_desejada);
+      const hoje = new Date();
+      const dataMinima = new Date(hoje);
+      dataMinima.setDate(dataMinima.getDate() + 10);
+
+      if (dataSelecionada < dataMinima) {
+        setErro("Demonstrações presenciais precisam ser solicitadas com pelo menos 10 dias de antecedência.");
+        return;
+      }
+    }
 
     if (qualificacaoObrigatoria) {
       const curto = CAMPOS_QUALIFICACAO.some((campo) => (form[campo] as string).trim().length < 50);
@@ -381,14 +401,22 @@ export default function NovaSolicitacaoForm({
             />
           </FormField>
           {form.tipo_apresentacao === "Presencial" && (
-            <FormField label="Endereço" required>
-              <TextInput
-                required
-                value={form.endereco_apresentacao}
-                onChange={(e) => update("endereco_apresentacao", e.target.value)}
-                placeholder="Ex: Av. Paulista, 1000, São Paulo - SP"
-              />
-            </FormField>
+            <>
+              <div className="col-span-1 sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900 mb-1">⚠️ Atenção:</p>
+                <p className="text-sm text-amber-800">
+                  Demonstrações presenciais precisam ser solicitadas com <strong>pelo menos 10 dias de antecedência</strong> por conta de possível viagem ou deslocamento.
+                </p>
+              </div>
+              <FormField label="Endereço" required>
+                <TextInput
+                  required
+                  value={form.endereco_apresentacao}
+                  onChange={(e) => update("endereco_apresentacao", e.target.value)}
+                  placeholder="Ex: Av. Paulista, 1000, São Paulo - SP"
+                />
+              </FormField>
+            </>
           )}
           <FormField label="Data desejada" required>
             <TextInput
@@ -396,6 +424,7 @@ export default function NovaSolicitacaoForm({
               required
               value={form.data_desejada}
               onChange={(e) => update("data_desejada", e.target.value)}
+              min={form.tipo_apresentacao === "Presencial" ? getMinDataPresencial() : undefined}
             />
           </FormField>
           <FormField label="Período">

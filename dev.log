@@ -1,0 +1,12 @@
+
+> solicitacao-demo-platform@0.1.0 dev
+> next dev
+
+Ôû▓ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.19:3000
+- Environments: .env.local
+Ô£ô Ready in 625ms
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'nome').
+    at ignore-listed frames
+[?25h

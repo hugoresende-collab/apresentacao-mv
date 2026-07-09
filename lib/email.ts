@@ -75,18 +75,78 @@ export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: Soli
 }
 
 export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDemo) {
-  return sendEmail({
+  // Gerar link do Google Meet
+  const googleMeetLink = `https://meet.google.com/${solicitacao.id.substring(0, 21)}`;
+
+  const emailContent = `
+    <h2>Demonstração Agendada!</h2>
+    <p>Sua solicitação de demonstração foi agendada com sucesso.</p>
+
+    <h3>Detalhes:</h3>
+    <ul>
+      <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+      <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+      <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}</li>
+      <li><b>Apresentador:</b> ${solicitacao.apresentador || "a definir"}</li>
+      <li><b>Local/Link:</b> ${solicitacao.link_ou_local || googleMeetLink}</li>
+    </ul>
+
+    ${!solicitacao.link_ou_local ? `
+    <h3>Google Meet:</h3>
+    <p><a href="${googleMeetLink}" style="background-color: #1f9e78; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+      Entrar na Videochamada
+    </a></p>
+    <p>Link: ${googleMeetLink}</p>
+    ` : ""}
+
+    <p>Agradecemos sua confiança!</p>
+  `;
+
+  // Enviar para o solicitante
+  const resultSolicitante = sendEmail({
     to: solicitacao.gerente_conta_email,
     subject: `Demo agendada: ${solicitacao.nome_instituicao}`,
-    html: `
-      <p>Sua solicitação de demonstração foi agendada.</p>
-      <ul>
-        <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
-        <li><b>Data/hora:</b> ${solicitacao.data_hora_agendada}</li>
-        <li><b>Local/link:</b> ${solicitacao.link_ou_local || "a definir"}</li>
-      </ul>
-    `,
+    html: emailContent,
   });
+
+  // Enviar também para o apresentador
+  if (solicitacao.apresentador) {
+    import("./apresentadores-config").then(async (mod) => {
+      const apresentadorEmail = mod.getApresentadorEmail(solicitacao.apresentador!);
+
+      if (apresentadorEmail) {
+        await sendEmail({
+          to: apresentadorEmail,
+          subject: `Demonstração agendada: ${solicitacao.nome_instituicao}`,
+          html: `
+            <h2>Nova Demonstração Agendada para Você</h2>
+            <p>Uma nova demonstração foi agendada com sua participação.</p>
+
+            <h3>Detalhes:</h3>
+            <ul>
+              <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+              <li><b>Gerente de Conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+              <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+              <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}</li>
+              <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
+              <li><b>Local/Link:</b> ${solicitacao.link_ou_local || googleMeetLink}</li>
+            </ul>
+
+            ${!solicitacao.link_ou_local ? `
+            <h3>Google Meet:</h3>
+            <p><a href="${googleMeetLink}" style="background-color: #1f9e78; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Entrar na Videochamada
+            </a></p>
+            ` : ""}
+
+            <p>Preparado para a demonstração?</p>
+          `,
+        });
+      }
+    });
+  }
+
+  return resultSolicitante;
 }
 
 export async function solicitarNps(solicitacao: SolicitacaoDemo) {

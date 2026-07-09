@@ -19,12 +19,13 @@ export async function POST(
     const body = await request.json();
     const status: StatusSolicitacao = body.status;
     const apresentador = body.apresentador || null;
+    const motivo_cancelamento = body.motivo_cancelamento || null;
 
     if (!STATUS_VALIDOS.includes(status)) {
       return NextResponse.json({ error: "Status inválido" }, { status: 400 });
     }
 
-    const solicitacao = await atualizarStatus(id, status, apresentador);
+    const solicitacao = await atualizarStatus(id, status, apresentador, motivo_cancelamento);
 
     if (!solicitacao) {
       return NextResponse.json({ error: "Erro ao atualizar status" }, { status: 500 });
