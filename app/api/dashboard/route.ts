@@ -22,11 +22,12 @@ interface ApresentadorStats {
 }
 
 export async function GET() {
-  const [solicitacoes, npsList, resultados] = await Promise.all([
-    listarSolicitacoes(),
-    listarNps(),
-    listarResultadosComerciais(),
-  ]);
+  try {
+    const [solicitacoes, npsList, resultados] = await Promise.all([
+      listarSolicitacoes(),
+      listarNps(),
+      listarResultadosComerciais(),
+    ]);
 
   // ===== STATUS GERAL =====
   const total = solicitacoes.length;
@@ -166,25 +167,32 @@ export async function GET() {
   const propostasGeradas = resultados.filter((r) => Boolean(r.proposta_gerada)).length;
   const propostasFechadas = resultados.filter((r) => Boolean(r.proposta_fechada)).length;
 
-  return NextResponse.json({
-    resumo: {
-      total,
-      porStatus,
-      percentualNpsRespondido: Number(percentualNpsRespondido.toFixed(1)),
-      npsMedio: npsMedio !== null ? Number(npsMedio.toFixed(1)) : null,
-      npsRespostas: npsList.length,
-      distribuicaoNps: { promotores, neutros, detratores },
-    },
-    gerentes: porGerente,
-    regionais: porRegional,
-    apresentadores: porApresentador,
-    solicitantes: porSolicitante,
-    metricas: {
-      ticketMedioDias: ticketMedioDias ? Number(ticketMedioDias.toFixed(1)) : null,
-      taxaOcupacaoAgenda: taxaOcupacao,
-      diasComDemo,
-      propostasGeradas,
-      propostasFechadas,
-    },
-  });
+    return NextResponse.json({
+      resumo: {
+        total,
+        porStatus,
+        percentualNpsRespondido: Number(percentualNpsRespondido.toFixed(1)),
+        npsMedio: npsMedio !== null ? Number(npsMedio.toFixed(1)) : null,
+        npsRespostas: npsList.length,
+        distribuicaoNps: { promotores, neutros, detratores },
+      },
+      gerentes: porGerente,
+      regionais: porRegional,
+      apresentadores: porApresentador,
+      solicitantes: porSolicitante,
+      metricas: {
+        ticketMedioDias: ticketMedioDias ? Number(ticketMedioDias.toFixed(1)) : null,
+        taxaOcupacaoAgenda: taxaOcupacao,
+        diasComDemo,
+        propostasGeradas,
+        propostasFechadas,
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao gerar dashboard:", error);
+    return NextResponse.json(
+      { error: "Erro ao carregar dashboard", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
 }
