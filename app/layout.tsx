@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Solicitação de Demonstrações — MV",
   description: "Ferramenta interna para solicitação e acompanhamento de demonstrações de produto",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 
