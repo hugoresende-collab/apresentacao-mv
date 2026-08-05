@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { FormField, TextInput, TextArea, Select } from "@/components/FormField";
 import { SuccessToast } from "@/components/SuccessToast";
+import { ErrorToast } from "@/components/ErrorToast";
 import {
   UNIDADES_REGIONAIS,
   TIPOS_UNIDADE,
@@ -76,6 +77,13 @@ export default function NovaSolicitacaoForm({
   const [erro, setErro] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const qualificacaoObrigatoria = form.tipo_oportunidade === "Cliente Novo";
+
+  useEffect(() => {
+    if (erro) {
+      const timer = setTimeout(() => setErro(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [erro]);
 
   function getMinDataPresencial(): string {
     const hoje = new Date();
@@ -152,6 +160,13 @@ export default function NovaSolicitacaoForm({
         <SuccessToast
           titulo="Solicitação enviada com sucesso!"
           mensagem="Em breve você receberá um retorno sobre o agendamento da sua demonstração."
+        />
+      )}
+
+      {erro && (
+        <ErrorToast
+          titulo="Erro ao enviar solicitação"
+          mensagem={erro}
         />
       )}
 
