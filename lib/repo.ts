@@ -1,6 +1,47 @@
 import { getDb, nowIso, withRetry } from "./db";
 import type { NpsDemo, ResultadoComercial, SolicitacaoDemo, StatusSolicitacao } from "./types";
 
+async function fetchSupabase<T>(
+  table: string,
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  options?: {
+    select?: string;
+    filters?: Record<string, string>;
+    data?: any;
+  }
+): Promise<T[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase credentials");
+  }
+
+  const baseUrl = `${url}/rest/v1/${table}`;
+  let queryUrl = baseUrl;
+
+  if (options?.select) {
+    queryUrl += `?select=${encodeURIComponent(options.select)}`;
+  }
+
+  const response = await fetch(queryUrl, {
+    method,
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "apikey": key,
+    },
+    body: options?.data ? JSON.stringify(options.data) : undefined,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Supabase error: ${error}`);
+  }
+
+  return response.json();
+}
+
 export type NovaSolicitacaoInput = Omit<
   SolicitacaoDemo,
   "id" | "status" | "data_hora_agendada" | "agendado_por" | "link_ou_local" | "created_at" | "updated_at"
@@ -66,25 +107,73 @@ export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<
   const now = nowIso();
 
   return withRetry(async () => {
-    const db = getDb();
-    const result = await db
-      .from("solicitacoes_demo")
-      .insert({ ...input, status: "solicitado", created_at: now, updated_at: now })
-      .select()
-      .single();
-    return lancarSeErro(result) as SolicitacaoDemo;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing Supabase credentials");
+    }
+
+    const response = await fetch(`${url}/rest/v1/solicitacoes_demo?select=*`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "apikey": key,
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify({
+        ...input,
+        status: "solicitado",
+        created_at: now,
+        updated_at: now,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to create solicitacao: ${error}`);
+    }
+
+    const results = await response.json();
+    if (!Array.isArray(results) || results.length === 0) {
+      throw new Error("No data returned from insert");
+    }
+
+    return results[0] as SolicitacaoDemo;
   });
 }
 
 export async function listarSolicitacoes(filtro?: { gerenteContaEmail?: string }): Promise<SolicitacaoDemo[]> {
   return withRetry(async () => {
-    const db = getDb();
-    let query = db.from("solicitacoes_demo").select("*").order("created_at", { ascending: false });
-    if (filtro?.gerenteContaEmail) {
-      query = query.eq("gerente_conta_email", filtro.gerenteContaEmail);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing Supabase credentials");
     }
-    const result = await query;
-    return lancarSeErro(result) as SolicitacaoDemo[];
+
+    let endpoint = `${url}/rest/v1/solicitacoes_demo?select=*&order=created_at.desc`;
+
+    if (filtro?.gerenteContaEmail) {
+      endpoint += `&gerente_conta_email=eq.${encodeURIComponent(filtro.gerenteContaEmail)}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "apikey": key,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to list solicitacoes: ${error}`);
+    }
+
+    return response.json() as Promise<SolicitacaoDemo[]>;
   });
 }
 
@@ -166,9 +255,28 @@ export async function buscarNps(solicitacaoId: string): Promise<NpsDemo | undefi
 
 export async function listarNps(): Promise<NpsDemo[]> {
   return withRetry(async () => {
-    const db = getDb();
-    const result = await db.from("nps_demo").select("*");
-    return lancarSeErro(result) as NpsDemo[];
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing Supabase credentials");
+    }
+
+    const response = await fetch(`${url}/rest/v1/nps_demo?select=*`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "apikey": key,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to list NPS: ${error}`);
+    }
+
+    return response.json() as Promise<NpsDemo[]>;
   });
 }
 
@@ -208,8 +316,27 @@ export async function buscarResultadoComercial(
 
 export async function listarResultadosComerciais(): Promise<ResultadoComercial[]> {
   return withRetry(async () => {
-    const db = getDb();
-    const result = await db.from("resultado_comercial").select("*");
-    return lancarSeErro(result) as ResultadoComercial[];
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing Supabase credentials");
+    }
+
+    const response = await fetch(`${url}/rest/v1/resultado_comercial?select=*`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "apikey": key,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to list resultados: ${error}`);
+    }
+
+    return response.json() as Promise<ResultadoComercial[]>;
   });
 }
