@@ -28,8 +28,39 @@ export default function MinhasSolicitacoesClient() {
 
   useEffect(() => {
     carregar();
-    const interval = setInterval(carregar, 3000);
-    return () => clearInterval(interval);
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    function iniciarPolling() {
+      if (interval) return;
+      interval = setInterval(carregar, 30000);
+    }
+
+    function pararPolling() {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        pararPolling();
+      } else {
+        carregar();
+        iniciarPolling();
+      }
+    }
+
+    if (!document.hidden) {
+      iniciarPolling();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      pararPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   return (
