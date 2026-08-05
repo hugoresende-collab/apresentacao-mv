@@ -16,6 +16,7 @@ export function getDb(): SupabaseClient {
     global.__demoSupabase = createClient(url, key, {
       auth: { persistSession: false },
       db: { schema: "public" },
+      realtime: { params: { eventsPerSecond: 10 } },
     });
   }
   return global.__demoSupabase;
