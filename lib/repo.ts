@@ -1,4 +1,4 @@
-import { getDb, nowIso } from "./db";
+import { getDb, nowIso, withRetry } from "./db";
 import type { NpsDemo, ResultadoComercial, SolicitacaoDemo, StatusSolicitacao } from "./types";
 
 export type NovaSolicitacaoInput = Omit<
@@ -62,27 +62,30 @@ function lancarSeErro<T>(result: { data: T; error: { message: string } | null })
 }
 
 export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<SolicitacaoDemo> {
-  const db = getDb();
   const input = normalizarNovaSolicitacao(rawInput);
   const now = nowIso();
 
-  const result = await db
-    .from("solicitacoes_demo")
-    .insert({ ...input, status: "solicitado", created_at: now, updated_at: now })
-    .select()
-    .single();
-
-  return lancarSeErro(result) as SolicitacaoDemo;
+  return withRetry(async () => {
+    const db = getDb();
+    const result = await db
+      .from("solicitacoes_demo")
+      .insert({ ...input, status: "solicitado", created_at: now, updated_at: now })
+      .select()
+      .single();
+    return lancarSeErro(result) as SolicitacaoDemo;
+  });
 }
 
 export async function listarSolicitacoes(filtro?: { gerenteContaEmail?: string }): Promise<SolicitacaoDemo[]> {
-  const db = getDb();
-  let query = db.from("solicitacoes_demo").select("*").order("created_at", { ascending: false });
-  if (filtro?.gerenteContaEmail) {
-    query = query.eq("gerente_conta_email", filtro.gerenteContaEmail);
-  }
-  const result = await query;
-  return lancarSeErro(result) as SolicitacaoDemo[];
+  return withRetry(async () => {
+    const db = getDb();
+    let query = db.from("solicitacoes_demo").select("*").order("created_at", { ascending: false });
+    if (filtro?.gerenteContaEmail) {
+      query = query.eq("gerente_conta_email", filtro.gerenteContaEmail);
+    }
+    const result = await query;
+    return lancarSeErro(result) as SolicitacaoDemo[];
+  });
 }
 
 export async function buscarSolicitacao(id: string): Promise<SolicitacaoDemo | undefined> {
