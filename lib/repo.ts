@@ -165,9 +165,11 @@ export async function buscarNps(solicitacaoId: string): Promise<NpsDemo | undefi
 }
 
 export async function listarNps(): Promise<NpsDemo[]> {
-  const db = getDb();
-  const result = await db.from("nps_demo").select("*");
-  return lancarSeErro(result) as NpsDemo[];
+  return withRetry(async () => {
+    const db = getDb();
+    const result = await db.from("nps_demo").select("*");
+    return lancarSeErro(result) as NpsDemo[];
+  });
 }
 
 export async function atualizarResultadoComercial(
@@ -205,7 +207,9 @@ export async function buscarResultadoComercial(
 }
 
 export async function listarResultadosComerciais(): Promise<ResultadoComercial[]> {
-  const db = getDb();
-  const result = await db.from("resultado_comercial").select("*");
-  return lancarSeErro(result) as ResultadoComercial[];
+  return withRetry(async () => {
+    const db = getDb();
+    const result = await db.from("resultado_comercial").select("*");
+    return lancarSeErro(result) as ResultadoComercial[];
+  });
 }
