@@ -1,46 +1,5 @@
-import { getDb, nowIso, withRetry } from "./db";
+import { nowIso, withRetry } from "./db";
 import type { NpsDemo, ResultadoComercial, SolicitacaoDemo, StatusSolicitacao } from "./types";
-
-async function fetchSupabase<T>(
-  table: string,
-  method: "GET" | "POST" | "PATCH" | "DELETE",
-  options?: {
-    select?: string;
-    filters?: Record<string, string>;
-    data?: any;
-  }
-): Promise<T[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("Missing Supabase credentials");
-  }
-
-  const baseUrl = `${url}/rest/v1/${table}`;
-  let queryUrl = baseUrl;
-
-  if (options?.select) {
-    queryUrl += `?select=${encodeURIComponent(options.select)}`;
-  }
-
-  const response = await fetch(queryUrl, {
-    method,
-    headers: {
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "apikey": key,
-    },
-    body: options?.data ? JSON.stringify(options.data) : undefined,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Supabase error: ${error}`);
-  }
-
-  return response.json();
-}
 
 export type NovaSolicitacaoInput = Omit<
   SolicitacaoDemo,
@@ -95,11 +54,51 @@ function normalizarNovaSolicitacao(input: NovaSolicitacaoInput): Record<string, 
   return normalizado;
 }
 
-function lancarSeErro<T>(result: { data: T; error: { message: string } | null }): T {
-  if (result.error) {
-    throw new Error(result.error.message);
+async function supabaseRest<T>(table: string, method: string, options?: any): Promise<T> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase credentials");
   }
-  return result.data;
+
+  const headers = {
+    "Authorization": `Bearer ${key}`,
+    "Content-Type": "application/json",
+    "apikey": key,
+  };
+
+  let endpoint = `${url}/rest/v1/${table}`;
+  if (options?.select) {
+    endpoint += `?select=${encodeURIComponent(options.select)}`;
+  }
+  if (options?.filters) {
+    for (const [key, value] of Object.entries(options.filters)) {
+      const filterStr = `${key}=eq.${encodeURIComponent(value as string)}`;
+      endpoint += endpoint.includes("?") ? `&${filterStr}` : `?${filterStr}`;
+    }
+  }
+
+  const fetchOptions: RequestInit = {
+    method,
+    headers,
+  };
+
+  if (options?.data) {
+    fetchOptions.body = JSON.stringify(options.data);
+    if (method === "POST" || method === "PATCH") {
+      headers["Prefer"] = "return=representation";
+    }
+  }
+
+  const response = await fetch(endpoint, fetchOptions);
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Supabase REST error: ${error}`);
+  }
+
+  return response.json();
 }
 
 export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<SolicitacaoDemo> {
@@ -107,40 +106,16 @@ export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<
   const now = nowIso();
 
   return withRetry(async () => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!url || !key) {
-      throw new Error("Missing Supabase credentials");
-    }
-
-    const response = await fetch(`${url}/rest/v1/solicitacoes_demo?select=*`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "apikey": key,
-        "Prefer": "return=representation",
-      },
-      body: JSON.stringify({
-        ...input,
-        status: "solicitado",
-        created_at: now,
-        updated_at: now,
-      }),
+    const results = await supabaseRest<SolicitacaoDemo[]>("solicitacoes_demo", "POST", {
+      data: { ...input, status: "solicitado", created_at: now, updated_at: now },
+      select: "*",
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to create solicitacao: ${error}`);
-    }
-
-    const results = await response.json();
     if (!Array.isArray(results) || results.length === 0) {
       throw new Error("No data returned from insert");
     }
 
-    return results[0] as SolicitacaoDemo;
+    return results[0];
   });
 }
 
@@ -154,47 +129,71 @@ export async function listarSolicitacoes(filtro?: { gerenteContaEmail?: string }
     }
 
     let endpoint = `${url}/rest/v1/solicitacoes_demo?select=*&order=created_at.desc`;
-
     if (filtro?.gerenteContaEmail) {
       endpoint += `&gerente_conta_email=eq.${encodeURIComponent(filtro.gerenteContaEmail)}`;
     }
 
     const response = await fetch(endpoint, {
-      method: "GET",
       headers: {
         "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
         "apikey": key,
       },
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list solicitacoes: ${error}`);
+      throw new Error("Failed to list solicitacoes");
     }
 
-    return response.json() as Promise<SolicitacaoDemo[]>;
+    return response.json();
   });
 }
 
 export async function buscarSolicitacao(id: string): Promise<SolicitacaoDemo | undefined> {
-  const db = getDb();
-  const result = await db.from("solicitacoes_demo").select("*").eq("id", id).maybeSingle();
-  return (lancarSeErro(result) as SolicitacaoDemo | null) ?? undefined;
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(
+      `${url}/rest/v1/solicitacoes_demo?id=eq.${encodeURIComponent(id)}&select=*`,
+      { headers: { "Authorization": `Bearer ${key}`, "apikey": key } }
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch");
+    const data = await response.json();
+    return data[0];
+  });
 }
 
 export async function agendarSolicitacao(
   id: string,
   data: { data_hora_agendada: string; agendado_por: string; link_ou_local: string | null; apresentador: string }
 ): Promise<SolicitacaoDemo | undefined> {
-  const db = getDb();
-  const result = await db
-    .from("solicitacoes_demo")
-    .update({ ...data, status: "demo agendada", updated_at: nowIso() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  return (lancarSeErro(result) as SolicitacaoDemo | null) ?? undefined;
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(
+      `${url}/rest/v1/solicitacoes_demo?id=eq.${encodeURIComponent(id)}&select=*`,
+      {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "apikey": key,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation",
+        },
+        body: JSON.stringify({ ...data, status: "demo agendada", updated_at: nowIso() }),
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to update");
+    const result = await response.json();
+    return result[0];
+  });
 }
 
 export async function atualizarStatus(
@@ -203,54 +202,80 @@ export async function atualizarStatus(
   apresentador?: string | null,
   motivo_cancelamento?: string | null
 ): Promise<SolicitacaoDemo | undefined> {
-  const db = getDb();
-  const update: any = { status, updated_at: nowIso() };
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (status === "realizada") {
-    update.data_hora_realizada = nowIso();
-  }
+    if (!url || !key) throw new Error("Missing credentials");
 
-  if (status === "cancelada" && motivo_cancelamento) {
-    update.motivo_cancelamento = motivo_cancelamento;
-  }
+    const update: any = { status, updated_at: nowIso() };
+    if (status === "realizada") update.data_hora_realizada = nowIso();
+    if (status === "cancelada" && motivo_cancelamento) update.motivo_cancelamento = motivo_cancelamento;
+    if (apresentador) update.apresentador = apresentador;
 
-  if (apresentador) {
-    update.apresentador = apresentador;
-  }
+    const response = await fetch(
+      `${url}/rest/v1/solicitacoes_demo?id=eq.${encodeURIComponent(id)}&select=*`,
+      {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "apikey": key,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation",
+        },
+        body: JSON.stringify(update),
+      }
+    );
 
-  const result = await db
-    .from("solicitacoes_demo")
-    .update(update)
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  return (lancarSeErro(result) as SolicitacaoDemo | null) ?? undefined;
+    if (!response.ok) throw new Error("Failed to update status");
+    const result = await response.json();
+    return result[0];
+  });
 }
 
 export async function registrarNps(
   solicitacaoId: string,
   data: { nota: number; comentario: string | null }
 ): Promise<NpsDemo> {
-  const db = getDb();
-  const result = await db
-    .from("nps_demo")
-    .upsert(
-      { solicitacao_id: solicitacaoId, ...data, respondido_em: nowIso() },
-      { onConflict: "solicitacao_id" }
-    )
-    .select()
-    .single();
-  return lancarSeErro(result) as NpsDemo;
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(`${url}/rest/v1/nps_demo?select=*`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "apikey": key,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify({ solicitacao_id: solicitacaoId, ...data, respondido_em: nowIso() }),
+    });
+
+    if (!response.ok) throw new Error("Failed to register NPS");
+    const result = await response.json();
+    return result[0];
+  });
 }
 
 export async function buscarNps(solicitacaoId: string): Promise<NpsDemo | undefined> {
-  const db = getDb();
-  const result = await db
-    .from("nps_demo")
-    .select("*")
-    .eq("solicitacao_id", solicitacaoId)
-    .maybeSingle();
-  return (lancarSeErro(result) as NpsDemo | null) ?? undefined;
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(
+      `${url}/rest/v1/nps_demo?solicitacao_id=eq.${encodeURIComponent(solicitacaoId)}&select=*`,
+      { headers: { "Authorization": `Bearer ${key}`, "apikey": key } }
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch NPS");
+    const data = await response.json();
+    return data[0];
+  });
 }
 
 export async function listarNps(): Promise<NpsDemo[]> {
@@ -258,25 +283,14 @@ export async function listarNps(): Promise<NpsDemo[]> {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!url || !key) {
-      throw new Error("Missing Supabase credentials");
-    }
+    if (!url || !key) throw new Error("Missing credentials");
 
     const response = await fetch(`${url}/rest/v1/nps_demo?select=*`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "apikey": key,
-      },
+      headers: { "Authorization": `Bearer ${key}`, "apikey": key },
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list NPS: ${error}`);
-    }
-
-    return response.json() as Promise<NpsDemo[]>;
+    if (!response.ok) throw new Error("Failed to list NPS");
+    return response.json();
   });
 }
 
@@ -290,28 +304,45 @@ export async function atualizarResultadoComercial(
     atualizado_por: string | null;
   }
 ): Promise<ResultadoComercial> {
-  const db = getDb();
-  const result = await db
-    .from("resultado_comercial")
-    .upsert(
-      { solicitacao_id: solicitacaoId, ...data, data_atualizacao: nowIso() },
-      { onConflict: "solicitacao_id" }
-    )
-    .select()
-    .single();
-  return lancarSeErro(result) as ResultadoComercial;
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(`${url}/rest/v1/resultado_comercial?select=*`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "apikey": key,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify({ solicitacao_id: solicitacaoId, ...data, data_atualizacao: nowIso() }),
+    });
+
+    if (!response.ok) throw new Error("Failed to update resultado");
+    const result = await response.json();
+    return result[0];
+  });
 }
 
-export async function buscarResultadoComercial(
-  solicitacaoId: string
-): Promise<ResultadoComercial | undefined> {
-  const db = getDb();
-  const result = await db
-    .from("resultado_comercial")
-    .select("*")
-    .eq("solicitacao_id", solicitacaoId)
-    .maybeSingle();
-  return (lancarSeErro(result) as ResultadoComercial | null) ?? undefined;
+export async function buscarResultadoComercial(solicitacaoId: string): Promise<ResultadoComercial | undefined> {
+  return withRetry(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) throw new Error("Missing credentials");
+
+    const response = await fetch(
+      `${url}/rest/v1/resultado_comercial?solicitacao_id=eq.${encodeURIComponent(solicitacaoId)}&select=*`,
+      { headers: { "Authorization": `Bearer ${key}`, "apikey": key } }
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch resultado");
+    const data = await response.json();
+    return data[0];
+  });
 }
 
 export async function listarResultadosComerciais(): Promise<ResultadoComercial[]> {
@@ -319,24 +350,13 @@ export async function listarResultadosComerciais(): Promise<ResultadoComercial[]
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!url || !key) {
-      throw new Error("Missing Supabase credentials");
-    }
+    if (!url || !key) throw new Error("Missing credentials");
 
     const response = await fetch(`${url}/rest/v1/resultado_comercial?select=*`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "apikey": key,
-      },
+      headers: { "Authorization": `Bearer ${key}`, "apikey": key },
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list resultados: ${error}`);
-    }
-
-    return response.json() as Promise<ResultadoComercial[]>;
+    if (!response.ok) throw new Error("Failed to list resultados");
+    return response.json();
   });
 }
