@@ -62,7 +62,7 @@ async function supabaseRest<T>(table: string, method: string, options?: any): Pr
     throw new Error("Missing Supabase credentials");
   }
 
-  const headers = {
+  const headers: Record<string, string> = {
     "Authorization": `Bearer ${key}`,
     "Content-Type": "application/json",
     "apikey": key,
@@ -79,6 +79,10 @@ async function supabaseRest<T>(table: string, method: string, options?: any): Pr
     }
   }
 
+  if (options?.data && (method === "POST" || method === "PATCH")) {
+    headers["Prefer"] = "return=representation";
+  }
+
   const fetchOptions: RequestInit = {
     method,
     headers,
@@ -86,9 +90,6 @@ async function supabaseRest<T>(table: string, method: string, options?: any): Pr
 
   if (options?.data) {
     fetchOptions.body = JSON.stringify(options.data);
-    if (method === "POST" || method === "PATCH") {
-      headers["Prefer"] = "return=representation";
-    }
   }
 
   const response = await fetch(endpoint, fetchOptions);
