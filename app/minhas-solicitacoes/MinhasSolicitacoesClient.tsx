@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput, TextArea } from "@/components/FormField";
 import { NpsModal } from "@/components/NpsModal";
+import { ErrorToast } from "@/components/ErrorToast";
 import type { SolicitacaoDemo } from "@/lib/types";
 
 export default function MinhasSolicitacoesClient() {
@@ -104,6 +105,14 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
   const [horarioFim, setHorarioFim] = useState(initialSolicitacao.horario_fim_desejado || "");
   const [remarcarloading, setRemarcarLoading] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (erroAcao) {
+      const timer = setTimeout(() => setErroAcao(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [erroAcao]);
 
   useLayoutEffect(() => {
     setSolicitacao(initialSolicitacao);
@@ -146,26 +155,22 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
       });
 
       const text = await res.text();
-      console.log("Response status:", res.status);
-      console.log("Response text:", text);
+      const data = text ? JSON.parse(text) : null;
 
-      if (!text) {
-        console.error("Resposta vazia do servidor");
+      if (!res.ok || !data?.solicitacao) {
+        setErroAcao(data?.error || "Não foi possível cancelar a solicitação. Tente novamente.");
         setCancelando(false);
-        setConfirmaCancelar(false);
         return;
       }
 
-      const data = JSON.parse(text);
-      if (data.solicitacao) {
-        setSolicitacao(data.solicitacao);
-        setMotivoCancelamento("");
-      }
+      setSolicitacao(data.solicitacao);
+      setMotivoCancelamento("");
+      setConfirmaCancelar(false);
     } catch (e) {
       console.error("Erro ao cancelar:", e);
+      setErroAcao("Não foi possível cancelar a solicitação. Tente novamente.");
     }
     setCancelando(false);
-    setConfirmaCancelar(false);
   }
 
   async function handleRemarcar() {
@@ -182,21 +187,29 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
       });
 
       const data = await res.json();
-      if (data.solicitacao) {
-        setSolicitacao(data.solicitacao);
-        setNovaDataDesejada(data.solicitacao.data_desejada);
-        setHorarioInicio(data.solicitacao.horario_inicio_desejado || "");
-        setHorarioFim(data.solicitacao.horario_fim_desejado || "");
+
+      if (!res.ok || !data?.solicitacao) {
+        setErroAcao(data?.error || "Não foi possível remarcar a solicitação. Tente novamente.");
+        setRemarcarLoading(false);
+        return;
       }
+
+      setSolicitacao(data.solicitacao);
+      setNovaDataDesejada(data.solicitacao.data_desejada);
+      setHorarioInicio(data.solicitacao.horario_inicio_desejado || "");
+      setHorarioFim(data.solicitacao.horario_fim_desejado || "");
+      setRemarcar(false);
     } catch (e) {
       console.error("Erro ao remarcar:", e);
+      setErroAcao("Não foi possível remarcar a solicitação. Tente novamente.");
     }
     setRemarcarLoading(false);
-    setRemarcar(false);
   }
 
   return (
     <>
+      {erroAcao && <ErrorToast titulo="Erro" mensagem={erroAcao} />}
+
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
