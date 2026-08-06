@@ -8,7 +8,7 @@ export interface ApresentadorConfig {
 export const APRESENTADORES_CONFIG: Record<string, ApresentadorConfig> = {
   "Valmir": {
     nome: "Valmir",
-    email: "valmir@mv.com.br",
+    email: "vjunior@mv.com.br",
   },
   "Barbara Moutinho": {
     nome: "Barbara Moutinho",

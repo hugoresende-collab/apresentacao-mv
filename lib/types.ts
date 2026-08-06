@@ -184,7 +184,7 @@ export const SOLUCOES_ATUAIS = [
 export const ADMIN_EMAILS = [
   "hugo.resende@mv.com.br",
   "rafael.bloise@mv.com.br",
-  "valmir@mv.com.br",
+  "vjunior@mv.com.br",
   "barbara.moutinho@mv.com.br",
   "ana.mendonca@mv.com.br",
 ] as const;
