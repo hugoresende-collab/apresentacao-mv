@@ -73,7 +73,7 @@ export async function createCalendarEvent(
     location?: string;
     attendees?: { email: string; displayName?: string }[];
   }
-): Promise<string> {
+): Promise<{ link: string; meetLink: string | null }> {
   try {
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
@@ -81,6 +81,7 @@ export async function createCalendarEvent(
     const response = await calendar.events.insert({
       auth,
       calendarId,
+      conferenceDataVersion: 1,
       requestBody: {
         summary: eventData.summary,
         description: eventData.description,
@@ -91,10 +92,20 @@ export async function createCalendarEvent(
           email: a.email,
           displayName: a.displayName,
         })),
+        conferenceData: {
+          createRequest: {
+            requestId: crypto.randomUUID(),
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
       },
     });
 
-    return response.data.htmlLink || "";
+    const meetLink =
+      response.data.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ||
+      null;
+
+    return { link: response.data.htmlLink || "", meetLink };
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar:", error);
     throw error;

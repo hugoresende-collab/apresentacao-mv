@@ -435,7 +435,7 @@ function SolicitacaoCard({
               <button
                 onClick={handleAgendar}
                 disabled={salvando || !dataHora || !apresentador}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 Confirmar agendamento
               </button>

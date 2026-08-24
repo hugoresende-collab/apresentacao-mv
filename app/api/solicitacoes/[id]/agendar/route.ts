@@ -10,10 +10,37 @@ import type { SolicitacaoDemo } from "@/lib/types";
 
 const DURACAO_EVENTO_MINUTOS = 60;
 
+// Monta início/fim como horário local "puro" (sem conversão de fuso),
+// pois o Google Calendar já recebe o timeZone "America/Sao_Paulo" separadamente.
+// Usar `new Date(...).toISOString()` aqui faria o servidor (que roda em UTC)
+// interpretar o horário errado e deslocar o evento em -3h.
+function calcularInicioFim(
+  dataHoraAgendada: string,
+  duracaoMinutos: number
+): { start: string; end: string } {
+  const [dataParte, horaParte] = dataHoraAgendada.split("T");
+  const [ano, mes, dia] = dataParte.split("-").map(Number);
+  const [hora, minuto] = horaParte.split(":").map(Number);
+
+  const totalMinutosFim = hora * 60 + minuto + duracaoMinutos;
+  const diasAdicionais = Math.floor(totalMinutosFim / (24 * 60));
+  const minutosFimNoDia = ((totalMinutosFim % (24 * 60)) + 24 * 60) % (24 * 60);
+  const horaFim = Math.floor(minutosFimNoDia / 60);
+  const minutoFim = minutosFimNoDia % 60;
+
+  const dataFimUtc = new Date(Date.UTC(ano, mes - 1, dia + diasAdicionais));
+  const dataFimStr = `${dataFimUtc.getUTCFullYear()}-${String(dataFimUtc.getUTCMonth() + 1).padStart(2, "0")}-${String(dataFimUtc.getUTCDate()).padStart(2, "0")}`;
+
+  return {
+    start: `${dataParte}T${horaParte}:00`,
+    end: `${dataFimStr}T${String(horaFim).padStart(2, "0")}:${String(minutoFim).padStart(2, "0")}:00`,
+  };
+}
+
 async function criarEventoNoCalendario(
   apresentadorId: string,
   solicitacao: SolicitacaoDemo
-): Promise<{ criado: boolean; link?: string; motivo?: string }> {
+): Promise<{ criado: boolean; link?: string; meetLink?: string | null; motivo?: string }> {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return { criado: false, motivo: "Google OAuth não está configurado" };
   }
@@ -44,10 +71,9 @@ async function criarEventoNoCalendario(
       refresh_token: apresentador.google_calendar_refresh_token,
     });
 
-    const inicio = new Date(solicitacao.data_hora_agendada!);
-    const fim = new Date(inicio.getTime() + DURACAO_EVENTO_MINUTOS * 60 * 1000);
+    const { start, end } = calcularInicioFim(solicitacao.data_hora_agendada!, DURACAO_EVENTO_MINUTOS);
 
-    const link = await createCalendarEvent(
+    const { link, meetLink } = await createCalendarEvent(
       apresentador.google_calendar_token,
       apresentador.google_calendar_id || "primary",
       {
@@ -60,8 +86,8 @@ async function criarEventoNoCalendario(
         ]
           .filter(Boolean)
           .join("\n"),
-        start: inicio.toISOString(),
-        end: fim.toISOString(),
+        start,
+        end,
         location: solicitacao.link_ou_local || solicitacao.endereco_apresentacao || undefined,
         attendees: solicitacao.gerente_conta_email
           ? [{ email: solicitacao.gerente_conta_email, displayName: solicitacao.gerente_conta_nome }]
@@ -69,7 +95,7 @@ async function criarEventoNoCalendario(
       }
     );
 
-    return { criado: true, link };
+    return { criado: true, link, meetLink };
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar do apresentador:", error);
     return {
@@ -115,6 +141,17 @@ export async function POST(
     ? await criarEventoNoCalendario(apresentador_id, solicitacao!)
     : { criado: false, motivo: "Apresentador sem id vinculado" };
 
-  const emailResult = await notificarAgendamentoConfirmado(solicitacao!);
-  return NextResponse.json({ solicitacao, email: emailResult, calendarEvento });
+  let solicitacaoFinal = solicitacao!;
+  if (!link_ou_local && calendarEvento.meetLink) {
+    solicitacaoFinal =
+      (await agendarSolicitacao(id, {
+        data_hora_agendada,
+        agendado_por,
+        link_ou_local: calendarEvento.meetLink,
+        apresentador,
+      })) || solicitacaoFinal;
+  }
+
+  const emailResult = await notificarAgendamentoConfirmado(solicitacaoFinal);
+  return NextResponse.json({ solicitacao: solicitacaoFinal, email: emailResult, calendarEvento });
 }
