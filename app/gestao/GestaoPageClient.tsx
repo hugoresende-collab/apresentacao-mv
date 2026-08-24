@@ -138,21 +138,41 @@ function SolicitacaoCard({
 
   async function handleAgendar() {
     setSalvando(true);
-    const res = await fetch(`/api/solicitacoes/${solicitacao.id}/agendar`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data_hora_agendada: dataHora,
-        agendado_por: agendadoPor,
-        link_ou_local: linkOuLocal,
-        apresentador: apresentador,
-      }),
-    });
-    const data = await res.json();
-    setSolicitacao({ ...data.solicitacao });
+    try {
+      const res = await fetch(`/api/solicitacoes/${solicitacao.id}/agendar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data_hora_agendada: dataHora,
+          agendado_por: agendadoPor,
+          link_ou_local: linkOuLocal,
+          apresentador: apresentador,
+          apresentador_id: apresentadorId,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.solicitacao) {
+        setErroAcao(data?.error || "Não foi possível confirmar o agendamento. Tente novamente.");
+        setSalvando(false);
+        return;
+      }
+
+      setSolicitacao({ ...data.solicitacao });
+      setAberto(true);
+
+      if (!data.calendarEvento?.criado) {
+        setErroAcao(
+          `Agendamento confirmado, mas não foi possível criar o evento no Google Calendar do apresentador (${data.calendarEvento?.motivo || "motivo desconhecido"}). Marque manualmente.`
+        );
+      }
+
+      setTimeout(() => onAtualizado(), 500);
+    } catch (e) {
+      console.error("Erro ao confirmar agendamento:", e);
+      setErroAcao("Não foi possível confirmar o agendamento. Tente novamente.");
+    }
     setSalvando(false);
-    setAberto(true);
-    setTimeout(() => onAtualizado(), 500);
   }
 
   async function handleRemarcar() {
