@@ -72,6 +72,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body.solucao_atual === "Outros" && !body.solucao_atual_outros?.trim()) {
+      return NextResponse.json(
+        { error: "Informe qual é a solução atual utilizada pelo cliente/prospect." },
+        { status: 400 }
+      );
+    }
+
     const solicitacao = await criarSolicitacao(body);
 
     const [emailSolicitante, emailAdministrativo, googleChat] = await Promise.all([

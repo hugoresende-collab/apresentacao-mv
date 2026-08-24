@@ -17,12 +17,17 @@ export async function notificarNovaSolicitacaoNoChat(
     return { sent: false, reason: "GOOGLE_CHAT_WEBHOOK_URL não configurado" };
   }
 
+  const datasSugeridas = [solicitacao.data_desejada, solicitacao.data_desejada_2, solicitacao.data_desejada_3]
+    .filter(Boolean)
+    .join(", ");
+
   const texto = [
     "*Nova solicitação de demonstração*",
+    `*Código:* ${solicitacao.codigo_solicitacao || "-"}`,
     `*Gerente de conta:* ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})`,
     `*Instituição:* ${solicitacao.nome_instituicao} (${solicitacao.cidade})`,
     `*Produto:* ${solicitacao.produto_apresentar}`,
-    `*Data desejada:* ${solicitacao.data_desejada}${solicitacao.periodo ? ` (${solicitacao.periodo})` : ""}`,
+    `*Data(s) sugerida(s):* ${datasSugeridas}${solicitacao.periodo ? ` (${solicitacao.periodo})` : ""}`,
     `*Tipo:* ${solicitacao.tipo_apresentacao}`,
   ].join("\n");
 

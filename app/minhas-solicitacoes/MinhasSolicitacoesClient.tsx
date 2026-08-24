@@ -215,6 +215,11 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
           <div className="flex-1">
             <p className="font-medium text-slate-900">
               {solicitacao.nome_instituicao} — {solicitacao.produto_apresentar}
+              {solicitacao.codigo_solicitacao && (
+                <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono font-normal text-slate-500">
+                  {solicitacao.codigo_solicitacao}
+                </span>
+              )}
             </p>
             <p className="text-sm text-slate-500">
               {solicitacao.cidade} · solicitado em{" "}
@@ -240,7 +245,7 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
           </dl>
         ) : (
           <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-500">
-            Data desejada: {solicitacao.data_desejada}
+            Data(s) sugerida(s): {[solicitacao.data_desejada, solicitacao.data_desejada_2, solicitacao.data_desejada_3].filter(Boolean).join(", ")}
             {solicitacao.periodo ? ` (${solicitacao.periodo})` : ""}
           </p>
         )}

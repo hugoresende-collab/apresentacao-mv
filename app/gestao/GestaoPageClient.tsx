@@ -4,8 +4,9 @@ import { useEffect, useState, useLayoutEffect } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TextInput } from "@/components/FormField";
+import { TextInput, TextArea } from "@/components/FormField";
 import { GoogleCalendarPicker } from "@/components/GoogleCalendarPicker";
+import { ErrorToast } from "@/components/ErrorToast";
 import type { SolicitacaoDemo, StatusSolicitacao, Apresentador } from "@/lib/types";
 
 export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string }) {
@@ -113,9 +114,18 @@ function SolicitacaoCard({
   const [apresentador, setApresentador] = useState(solicitacao.apresentador || "");
   const [apresentadorId, setApresentadorId] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const [confirmaCancelar, setConfirmaCancelar] = useState(false);
+  const [confirmaCancelar, setConfirmaCancelar] = useState<"confirmar" | "motivo" | false>(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [remarcar, setRemarcar] = useState(false);
   const [novaDataDesejada, setNovaDataDesejada] = useState(solicitacao.data_desejada);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (erroAcao) {
+      const timer = setTimeout(() => setErroAcao(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [erroAcao]);
 
   useLayoutEffect(() => {
     setSolicitacao(initialSolicitacao);
@@ -162,32 +172,58 @@ function SolicitacaoCard({
     setTimeout(() => onAtualizado(), 500);
   }
 
-  async function handleStatus(status: StatusSolicitacao) {
+  async function handleStatus(status: StatusSolicitacao, motivoCancelamentoInformado?: string) {
     setSalvando(true);
     const body: any = { status };
     if (status === "realizada" && apresentador) {
       body.apresentador = apresentador;
     }
-    const res = await fetch(`/api/solicitacoes/${solicitacao.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    setSolicitacao(data.solicitacao);
+    if (status === "cancelada" && motivoCancelamentoInformado) {
+      body.motivo_cancelamento = motivoCancelamentoInformado;
+    }
+
+    try {
+      const res = await fetch(`/api/solicitacoes/${solicitacao.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.solicitacao) {
+        setErroAcao(data?.error || "Não foi possível atualizar o status da solicitação. Tente novamente.");
+        setSalvando(false);
+        return;
+      }
+
+      setSolicitacao(data.solicitacao);
+      setAberto(true);
+    } catch (e) {
+      console.error("Erro ao atualizar status:", e);
+      setErroAcao("Não foi possível atualizar o status da solicitação. Tente novamente.");
+    }
     setSalvando(false);
-    setAberto(true);
   }
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
+      {erroAcao && <ErrorToast titulo="Erro" mensagem={erroAcao} />}
+
       <button className="flex w-full items-start justify-between gap-4 text-left" onClick={() => setAberto(!aberto)}>
         <div className="flex-1">
           <p className="font-medium text-slate-900">
             {solicitacao.nome_instituicao} — {solicitacao.produto_apresentar}
+            {solicitacao.codigo_solicitacao && (
+              <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono font-normal text-slate-500">
+                {solicitacao.codigo_solicitacao}
+              </span>
+            )}
           </p>
           <p className="text-sm text-slate-500">
-            {solicitacao.gerente_conta_nome} · {solicitacao.cidade} · desejado {solicitacao.data_desejada}
+            {solicitacao.gerente_conta_nome} · {solicitacao.cidade} · desejado{" "}
+            {[solicitacao.data_desejada, solicitacao.data_desejada_2, solicitacao.data_desejada_3]
+              .filter(Boolean)
+              .join(" / ")}
           </p>
           {solicitacao.apresentador && (
             <div className="mt-1 space-y-1">
@@ -210,10 +246,15 @@ function SolicitacaoCard({
       {aberto && (
         <div className="mt-4 space-y-4 border-t border-slate-100 pt-4 text-sm">
           <dl className="grid grid-cols-2 gap-2 text-slate-600">
+            <Info label="Código da solicitação" value={solicitacao.codigo_solicitacao || "-"} />
             <Info label="Email do gerente de conta" value={solicitacao.gerente_conta_email || "-"} />
             <Info label="Apresentador" value={solicitacao.apresentador || "-"} />
             <Info label="Tipo de apresentação" value={solicitacao.tipo_apresentacao} />
             <Info label="Observação da apresentação" value={solicitacao.observacao_apresentacao || "-"} />
+            <Info
+              label="Outras datas sugeridas"
+              value={[solicitacao.data_desejada_2, solicitacao.data_desejada_3].filter(Boolean).join(", ") || "-"}
+            />
             <Info label="Período desejado" value={solicitacao.periodo || "-"} />
             <Info
               label="Horário desejado"
@@ -326,7 +367,7 @@ function SolicitacaoCard({
             )}
             {solicitacao.status !== "cancelada" && solicitacao.status !== "realizada" && (
               <button
-                onClick={() => setConfirmaCancelar(true)}
+                onClick={() => setConfirmaCancelar("confirmar")}
                 disabled={salvando}
                 className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 disabled:opacity-50"
               >
@@ -338,7 +379,7 @@ function SolicitacaoCard({
       )}
 
       {/* Modal de confirmação de cancelamento */}
-      {confirmaCancelar && (
+      {confirmaCancelar === "confirmar" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xl max-w-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-2">Confirmar cancelamento</h2>
@@ -354,16 +395,52 @@ function SolicitacaoCard({
                 Não, voltar
               </button>
               <button
-                onClick={async () => {
-                  setSalvando(true);
-                  await handleStatus("cancelada");
-                  setSalvando(false);
-                  setConfirmaCancelar(false);
-                }}
+                onClick={() => setConfirmaCancelar("motivo")}
                 disabled={salvando}
                 className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Sim, cancelar
+                Sim, continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de motivo do cancelamento */}
+      {confirmaCancelar === "motivo" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xl max-w-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Motivo do cancelamento</h2>
+            <p className="text-sm text-slate-600 mb-4">Por favor, informe o motivo do cancelamento:</p>
+            <label className="mb-6 flex flex-col gap-2">
+              <TextArea
+                value={motivoCancelamento}
+                onChange={(e) => setMotivoCancelamento(e.target.value)}
+                placeholder="Ex: Cliente não mais interessado, mudança de prioridade, etc..."
+                rows={4}
+              />
+            </label>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setConfirmaCancelar(false);
+                  setMotivoCancelamento("");
+                }}
+                disabled={salvando}
+                className="rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={async () => {
+                  await handleStatus("cancelada", motivoCancelamento);
+                  setConfirmaCancelar(false);
+                  setMotivoCancelamento("");
+                }}
+                disabled={salvando || !motivoCancelamento.trim()}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Confirmar cancelamento
               </button>
             </div>
           </div>

@@ -35,14 +35,97 @@ async function sendEmail(payload: EmailPayload): Promise<{ sent: boolean; reason
   return { sent: true };
 }
 
+function datasSugeridasTexto(solicitacao: SolicitacaoDemo): string {
+  const datas = [solicitacao.data_desejada, solicitacao.data_desejada_2, solicitacao.data_desejada_3].filter(Boolean);
+  return datas.join(", ");
+}
+
+function formatarMoedaBrl(valor: number | null): string {
+  if (valor === null || valor === undefined) return "-";
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function solucaoAtualTexto(solicitacao: SolicitacaoDemo): string {
+  if (!solicitacao.solucao_atual) return "-";
+  if (solicitacao.solucao_atual === "Outros") {
+    return `Outros (${solicitacao.solucao_atual_outros || "não especificado"})`;
+  }
+  return solicitacao.solucao_atual;
+}
+
+function perfilServicosTexto(solicitacao: SolicitacaoDemo): string {
+  const perfis = [
+    solicitacao.atende_sus ? "Atende SUS" : null,
+    solicitacao.atende_convenio_particular ? "Atende convênio/particular" : null,
+    solicitacao.possui_pronto_socorro ? "Possui pronto socorro" : null,
+    solicitacao.possui_ambulatorio ? "Possui ambulatório" : null,
+  ].filter(Boolean);
+  return perfis.length > 0 ? perfis.join(", ") : "-";
+}
+
+function qualificacaoHtml(solicitacao: SolicitacaoDemo): string {
+  const todosCampos: Array<[string, string | null]> = [
+    ["Dor do prospect", solicitacao.dor_prospect],
+    ["Problemas em atendimento ao paciente", solicitacao.problemas_atendimento_paciente],
+    ["Problemas na área clínica/assistencial", solicitacao.problemas_area_assistencial],
+    ["Problemas em suprimentos", solicitacao.problemas_suprimentos],
+    ["Problemas em faturamento", solicitacao.problemas_faturamento],
+    ["Problemas financeiro/contábil", solicitacao.problemas_financeiro_contabil],
+    ["Problemas em diagnóstico/terapia", solicitacao.problemas_diagnostico_terapia],
+  ];
+  const campos = todosCampos.filter(([, valor]) => valor && valor.trim());
+
+  if (campos.length === 0) return "";
+
+  return `
+    <h3>Dores e qualificação</h3>
+    <ul>
+      ${campos.map(([label, valor]) => `<li><b>${label}:</b> ${valor}</li>`).join("")}
+    </ul>
+  `;
+}
+
 function resumoSolicitacaoHtml(solicitacao: SolicitacaoDemo): string {
   return `
+    <h3>Solicitação</h3>
     <ul>
+      <li><b>Código da solicitação:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
       <li><b>Gerente de conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+      <li><b>Unidade regional:</b> ${solicitacao.unidade_regional}</li>
+    </ul>
+
+    <h3>Instituição / prospect</h3>
+    <ul>
       <li><b>Instituição:</b> ${solicitacao.nome_instituicao} (${solicitacao.cidade})</li>
-      <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
-      <li><b>Data desejada:</b> ${solicitacao.data_desejada} (${solicitacao.periodo || "sem período definido"})</li>
-      <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
+      <li><b>Natureza:</b> ${solicitacao.natureza_instituicao}</li>
+      <li><b>Porte:</b> ${solicitacao.porte_instituicao}</li>
+      <li><b>Tipo de unidade:</b> ${solicitacao.tipo_unidade}</li>
+      <li><b>Perfil de serviços:</b> ${perfilServicosTexto(solicitacao)}</li>
+      <li><b>Solução atual:</b> ${solucaoAtualTexto(solicitacao)}</li>
+    </ul>
+
+    <h3>Oportunidade</h3>
+    <ul>
+      <li><b>Tipo de oportunidade:</b> ${solicitacao.tipo_oportunidade}</li>
+      <li><b>Tipo de projeto:</b> ${solicitacao.tipo_projeto || "-"}</li>
+      <li><b>Código da oportunidade:</b> ${solicitacao.codigo_oportunidade || "-"}</li>
+      <li><b>Número de visitas já realizadas:</b> ${solicitacao.numero_visitas || "-"}</li>
+      <li><b>Valor aproximado do projeto:</b> ${formatarMoedaBrl(solicitacao.valor_aproximado_projeto)}</li>
+      <li><b>% de evolução no CRM:</b> ${solicitacao.percentual_evolucao_crm || "-"}</li>
+      <li><b>Patrocinador (sponsor):</b> ${solicitacao.nome_patrocinador || "-"} ${solicitacao.email_patrocinador ? `(${solicitacao.email_patrocinador})` : ""}</li>
+    </ul>
+
+    ${qualificacaoHtml(solicitacao)}
+
+    <h3>Apresentação</h3>
+    <ul>
+      <li><b>Produto a apresentar:</b> ${solicitacao.produto_apresentar}</li>
+      <li><b>Observação da apresentação:</b> ${solicitacao.observacao_apresentacao || "-"}</li>
+      <li><b>Tipo de apresentação:</b> ${solicitacao.tipo_apresentacao}</li>
+      ${solicitacao.endereco_apresentacao ? `<li><b>Endereço:</b> ${solicitacao.endereco_apresentacao}</li>` : ""}
+      <li><b>Data(s) sugerida(s):</b> ${datasSugeridasTexto(solicitacao)} (${solicitacao.periodo || "sem período definido"})</li>
+      <li><b>Horário desejado:</b> ${solicitacao.horario_inicio_desejado || "-"} a ${solicitacao.horario_fim_desejado || "-"}</li>
+      <li><b>Observações:</b> ${solicitacao.observacoes || "-"}</li>
     </ul>
   `;
 }
@@ -50,7 +133,7 @@ function resumoSolicitacaoHtml(solicitacao: SolicitacaoDemo): string {
 export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: SolicitacaoDemo) {
   return sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao}`,
+    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao}`,
     html: `
       <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time administrativo vai agendar em breve.</p>
       ${resumoSolicitacaoHtml(solicitacao)}
@@ -62,7 +145,7 @@ export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: Soli
   const promises = ADMINISTRATIVO_EMAILS.map(email =>
     sendEmail({
       to: email,
-      subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
+      subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
       html: `
         <p>Nova solicitação de demonstração recebida.</p>
         ${resumoSolicitacaoHtml(solicitacao)}
@@ -84,6 +167,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
 
     <h3>Detalhes:</h3>
     <ul>
+      <li><b>Código da solicitação:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
       <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
       <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
       <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}</li>
@@ -105,7 +189,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
   // Enviar para o solicitante
   const resultSolicitante = sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `Demo agendada: ${solicitacao.nome_instituicao}`,
+    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Demo agendada: ${solicitacao.nome_instituicao}`,
     html: emailContent,
   });
 
@@ -124,6 +208,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
 
             <h3>Detalhes:</h3>
             <ul>
+              <li><b>Código da solicitação:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
               <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
               <li><b>Gerente de Conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
               <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
@@ -152,10 +237,10 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
 export async function solicitarNps(solicitacao: SolicitacaoDemo) {
   return sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `Como foi a demonstração? ${solicitacao.nome_instituicao}`,
+    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Como foi a demonstração? ${solicitacao.nome_instituicao}`,
     html: `
       <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
-      <p>A demonstração para <b>${solicitacao.nome_instituicao}</b> foi realizada com sucesso.</p>
+      <p>A demonstração para <b>${solicitacao.nome_instituicao}</b> (código ${solicitacao.codigo_solicitacao || "-"}) foi realizada com sucesso.</p>
       <p>Gostaríamos de saber como foi sua experiência:</p>
       <ul>
         <li>A demonstração atendeu a todos os requisitos?</li>

@@ -32,9 +32,11 @@ export interface SolicitacaoDemo {
   nome_patrocinador: string | null;
   email_patrocinador: string | null;
   codigo_oportunidade: string | null;
+  codigo_solicitacao: string | null;
   numero_visitas: string | null;
   valor_aproximado_projeto: number | null;
   percentual_evolucao_crm: string | null;
+  solucao_atual_outros: string | null;
   atende_sus: boolean;
   atende_convenio_particular: boolean;
   possui_pronto_socorro: boolean;
@@ -49,6 +51,8 @@ export interface SolicitacaoDemo {
   tipo_apresentacao: string;
   endereco_apresentacao: string | null;
   data_desejada: string;
+  data_desejada_2: string | null;
+  data_desejada_3: string | null;
   periodo: string | null;
   horario_inicio_desejado: string | null;
   horario_fim_desejado: string | null;
@@ -179,6 +183,18 @@ export const SOLUCOES_ATUAIS = [
   "DGS",
   "Bionexo Tasy",
   "TOTVS",
+  "Outros",
+] as const;
+
+export const PERCENTUAIS_EVOLUCAO_CRM = [
+  "0%",
+  "5%",
+  "10%",
+  "20%",
+  "40%",
+  "80%",
+  "90%",
+  "95%",
 ] as const;
 
 export const ADMIN_EMAILS = [

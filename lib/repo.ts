@@ -3,11 +3,19 @@ import type { NpsDemo, ResultadoComercial, SolicitacaoDemo, StatusSolicitacao } 
 
 export type NovaSolicitacaoInput = Omit<
   SolicitacaoDemo,
-  "id" | "status" | "data_hora_agendada" | "agendado_por" | "link_ou_local" | "created_at" | "updated_at"
+  | "id"
+  | "status"
+  | "data_hora_agendada"
+  | "agendado_por"
+  | "link_ou_local"
+  | "created_at"
+  | "updated_at"
+  | "codigo_solicitacao"
 >;
 
 const CAMPOS_OPCIONAIS_TEXTO: (keyof NovaSolicitacaoInput)[] = [
   "solucao_atual",
+  "solucao_atual_outros",
   "tipo_projeto",
   "observacao_apresentacao",
   "nome_patrocinador",
@@ -26,6 +34,8 @@ const CAMPOS_OPCIONAIS_TEXTO: (keyof NovaSolicitacaoInput)[] = [
   "horario_inicio_desejado",
   "horario_fim_desejado",
   "observacoes",
+  "data_desejada_2",
+  "data_desejada_3",
 ];
 
 const CAMPOS_BOOLEANOS: (keyof NovaSolicitacaoInput)[] = [
@@ -102,13 +112,25 @@ async function supabaseRest<T>(table: string, method: string, options?: any): Pr
   return response.json();
 }
 
+const CARACTERES_CODIGO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function gerarCodigoSolicitacao(dataIso: string): string {
+  const data = dataIso.slice(0, 10).replace(/-/g, "");
+  let sufixo = "";
+  for (let i = 0; i < 4; i++) {
+    sufixo += CARACTERES_CODIGO[Math.floor(Math.random() * CARACTERES_CODIGO.length)];
+  }
+  return `SD-${data}-${sufixo}`;
+}
+
 export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<SolicitacaoDemo> {
   const input = normalizarNovaSolicitacao(rawInput);
   const now = nowIso();
+  const codigoSolicitacao = gerarCodigoSolicitacao(now);
 
   return withRetry(async () => {
     const results = await supabaseRest<SolicitacaoDemo[]>("solicitacoes_demo", "POST", {
-      data: { ...input, status: "solicitado", created_at: now, updated_at: now },
+      data: { ...input, codigo_solicitacao: codigoSolicitacao, status: "solicitado", created_at: now, updated_at: now },
       select: "*",
     });
 

@@ -18,6 +18,7 @@ import {
   PERIODOS,
   NUMERO_VISITAS_OPCOES,
   SOLUCOES_ATUAIS,
+  PERCENTUAIS_EVOLUCAO_CRM,
 } from "@/lib/types";
 
 function estadoInicial(nome: string, email: string) {
@@ -31,6 +32,7 @@ function estadoInicial(nome: string, email: string) {
     cidade: "",
     tipo_unidade: "",
     solucao_atual: "",
+    solucao_atual_outros: "",
     tipo_oportunidade: "",
     tipo_projeto: "",
     produto_apresentar: "",
@@ -55,6 +57,8 @@ function estadoInicial(nome: string, email: string) {
     tipo_apresentacao: "",
     endereco_apresentacao: "",
     data_desejada: "",
+    data_desejada_2: "",
+    data_desejada_3: "",
     periodo: "",
     horario_inicio_desejado: "",
     horario_fim_desejado: "",
@@ -76,6 +80,8 @@ export default function NovaSolicitacaoForm({
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
+  const [mostrarData2, setMostrarData2] = useState(false);
+  const [mostrarData3, setMostrarData3] = useState(false);
   const qualificacaoObrigatoria = form.tipo_oportunidade === "Cliente Novo";
 
   useEffect(() => {
@@ -96,6 +102,18 @@ export default function NovaSolicitacaoForm({
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
+  function formatarValorDigitado(valorDigitado: string): string {
+    const digitos = valorDigitado.replace(/\D/g, "");
+    if (!digitos) return "";
+    const numero = Number(digitos) / 100;
+    return numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function valorFormatadoParaNumero(valorFormatado: string): string {
+    if (!valorFormatado) return "";
+    return valorFormatado.replace(/\./g, "").replace(",", ".");
+  }
+
   const CAMPOS_QUALIFICACAO: (keyof EstadoFormulario)[] = [
     "dor_prospect",
     "problemas_atendimento_paciente",
@@ -110,17 +128,23 @@ export default function NovaSolicitacaoForm({
     e.preventDefault();
     setErro(null);
 
-    // Validar 10 dias para demonstrações presenciais
+    // Validar 10 dias para demonstrações presenciais (considera as até 3 datas sugeridas)
     if (form.tipo_apresentacao === "Presencial") {
-      const dataSelecionada = new Date(form.data_desejada);
+      const datasSugeridas = [form.data_desejada, form.data_desejada_2, form.data_desejada_3].filter(Boolean);
       const hoje = new Date();
       const dataMinima = new Date(hoje);
       dataMinima.setDate(dataMinima.getDate() + 10);
 
-      if (dataSelecionada < dataMinima) {
-        setErro("Demonstrações presenciais precisam ser solicitadas com pelo menos 10 dias de antecedência.");
+      const dataInvalida = datasSugeridas.some((data) => new Date(data) < dataMinima);
+      if (dataInvalida) {
+        setErro("Demonstrações presenciais precisam ser solicitadas com pelo menos 10 dias de antecedência. Verifique todas as datas sugeridas.");
         return;
       }
+    }
+
+    if (form.solucao_atual === "Outros" && !form.solucao_atual_outros.trim()) {
+      setErro("Informe qual é a solução atual utilizada pelo cliente/prospect.");
+      return;
     }
 
     if (qualificacaoObrigatoria) {
@@ -135,10 +159,15 @@ export default function NovaSolicitacaoForm({
 
     setEnviando(true);
 
+    const payload = {
+      ...form,
+      valor_aproximado_projeto: valorFormatadoParaNumero(form.valor_aproximado_projeto),
+    };
+
     const res = await fetch("/api/solicitacoes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -229,6 +258,16 @@ export default function NovaSolicitacaoForm({
               options={SOLUCOES_ATUAIS}
             />
           </FormField>
+          {form.solucao_atual === "Outros" && (
+            <FormField label="Qual solução atual?" required>
+              <TextInput
+                required
+                value={form.solucao_atual_outros}
+                onChange={(e) => update("solucao_atual_outros", e.target.value)}
+                placeholder="Informe qual é a solução utilizada atualmente"
+              />
+            </FormField>
+          )}
           <FormField label="Tipo de oportunidade" required>
             <Select
               required
@@ -274,19 +313,18 @@ export default function NovaSolicitacaoForm({
           </FormField>
           <FormField label="Valor aproximado do projeto (R$)">
             <TextInput
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="numeric"
               value={form.valor_aproximado_projeto}
-              onChange={(e) => update("valor_aproximado_projeto", e.target.value)}
-              placeholder="Ex: 50000"
+              onChange={(e) => update("valor_aproximado_projeto", formatarValorDigitado(e.target.value))}
+              placeholder="Ex: 50.000,00"
             />
           </FormField>
           <FormField label="% de evolução no CRM">
-            <TextInput
+            <Select
+              options={PERCENTUAIS_EVOLUCAO_CRM}
               value={form.percentual_evolucao_crm}
               onChange={(e) => update("percentual_evolucao_crm", e.target.value)}
-              placeholder="Ex: 20"
             />
           </FormField>
           <FormField label="Nome do patrocinador (sponsor)">
@@ -442,6 +480,81 @@ export default function NovaSolicitacaoForm({
               min={form.tipo_apresentacao === "Presencial" ? getMinDataPresencial() : undefined}
             />
           </FormField>
+
+          {!mostrarData2 ? (
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => setMostrarData2(true)}
+                className="text-sm font-medium text-[#008C77] hover:underline"
+              >
+                + Adicionar outra data sugerida
+              </button>
+            </div>
+          ) : (
+            <FormField label="2ª data sugerida (opcional)">
+              <div className="flex items-center gap-2">
+                <TextInput
+                  type="date"
+                  value={form.data_desejada_2}
+                  onChange={(e) => update("data_desejada_2", e.target.value)}
+                  min={form.tipo_apresentacao === "Presencial" ? getMinDataPresencial() : undefined}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarData2(false);
+                    setMostrarData3(false);
+                    update("data_desejada_2", "");
+                    update("data_desejada_3", "");
+                  }}
+                  className="text-sm text-slate-400 hover:text-red-600"
+                  aria-label="Remover 2ª data sugerida"
+                >
+                  ✕
+                </button>
+              </div>
+            </FormField>
+          )}
+
+          {mostrarData2 && !mostrarData3 && (
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => setMostrarData3(true)}
+                className="text-sm font-medium text-[#008C77] hover:underline"
+              >
+                + Adicionar outra data sugerida
+              </button>
+            </div>
+          )}
+
+          {mostrarData2 && mostrarData3 && (
+            <FormField label="3ª data sugerida (opcional)">
+              <div className="flex items-center gap-2">
+                <TextInput
+                  type="date"
+                  value={form.data_desejada_3}
+                  onChange={(e) => update("data_desejada_3", e.target.value)}
+                  min={form.tipo_apresentacao === "Presencial" ? getMinDataPresencial() : undefined}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarData3(false);
+                    update("data_desejada_3", "");
+                  }}
+                  className="text-sm text-slate-400 hover:text-red-600"
+                  aria-label="Remover 3ª data sugerida"
+                >
+                  ✕
+                </button>
+              </div>
+            </FormField>
+          )}
+
           <FormField label="Período">
             <Select
               options={PERIODOS}
