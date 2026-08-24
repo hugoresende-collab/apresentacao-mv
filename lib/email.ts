@@ -133,7 +133,7 @@ function resumoSolicitacaoHtml(solicitacao: SolicitacaoDemo): string {
 export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: SolicitacaoDemo) {
   return sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao}`,
+    subject: `Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
     html: `
       <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time administrativo vai agendar em breve.</p>
       ${resumoSolicitacaoHtml(solicitacao)}
@@ -145,7 +145,7 @@ export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: Soli
   const promises = ADMINISTRATIVO_EMAILS.map(email =>
     sendEmail({
       to: email,
-      subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Nova solicitação de demo: ${solicitacao.nome_instituicao}`,
+      subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
       html: `
         <p>Nova solicitação de demonstração recebida.</p>
         ${resumoSolicitacaoHtml(solicitacao)}
@@ -189,7 +189,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
   // Enviar para o solicitante
   const resultSolicitante = sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Demo agendada: ${solicitacao.nome_instituicao}`,
+    subject: `Demo agendada: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
     html: emailContent,
   });
 
@@ -237,7 +237,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
 export async function solicitarNps(solicitacao: SolicitacaoDemo) {
   return sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `[${solicitacao.codigo_solicitacao || "s/ código"}] Como foi a demonstração? ${solicitacao.nome_instituicao}`,
+    subject: `Como foi a demonstração? ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
     html: `
       <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
       <p>A demonstração para <b>${solicitacao.nome_instituicao}</b> (código ${solicitacao.codigo_solicitacao || "-"}) foi realizada com sucesso.</p>
