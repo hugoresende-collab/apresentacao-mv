@@ -170,7 +170,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
       <li><b>Código da solicitação:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
       <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
       <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
-      <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}</li>
+      <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}${solicitacao.data_hora_agendada_fim ? ` até ${new Date(solicitacao.data_hora_agendada_fim).toLocaleTimeString("pt-BR")}` : ""}</li>
       <li><b>Apresentador:</b> ${solicitacao.apresentador || "a definir"}</li>
       <li><b>Local/Link:</b> ${solicitacao.link_ou_local || googleMeetLink}</li>
     </ul>
@@ -212,7 +212,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
               <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
               <li><b>Gerente de Conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
               <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
-              <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}</li>
+              <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}${solicitacao.data_hora_agendada_fim ? ` até ${new Date(solicitacao.data_hora_agendada_fim).toLocaleTimeString("pt-BR")}` : ""}</li>
               <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
               <li><b>Local/Link:</b> ${solicitacao.link_ou_local || googleMeetLink}</li>
             </ul>

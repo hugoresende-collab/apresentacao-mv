@@ -47,6 +47,7 @@ create table if not exists solicitacoes_demo (
   observacoes text,
   status text not null default 'solicitado' check (status in ('solicitado', 'demo agendada', 'realizada', 'cancelada')),
   data_hora_agendada text,
+  data_hora_agendada_fim text,
   agendado_por text,
   link_ou_local text,
   apresentador text,

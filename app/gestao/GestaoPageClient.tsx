@@ -9,6 +9,32 @@ import { GoogleCalendarPicker } from "@/components/GoogleCalendarPicker";
 import { ErrorToast } from "@/components/ErrorToast";
 import type { SolicitacaoDemo, StatusSolicitacao, Apresentador } from "@/lib/types";
 
+function somarMinutos(dataHora: string, minutos: number): string {
+  const [dataParte, horaParte] = dataHora.split("T");
+  const [ano, mes, dia] = dataParte.split("-").map(Number);
+  const [hora, minuto] = horaParte.split(":").map(Number);
+
+  const totalMinutos = hora * 60 + minuto + minutos;
+  const diasAdicionais = Math.floor(totalMinutos / (24 * 60));
+  const minutosNoDia = ((totalMinutos % (24 * 60)) + 24 * 60) % (24 * 60);
+  const horaFim = Math.floor(minutosNoDia / 60);
+  const minutoFim = minutosNoDia % 60;
+
+  const dataFim = new Date(Date.UTC(ano, mes - 1, dia + diasAdicionais));
+  const dataFimStr = `${dataFim.getUTCFullYear()}-${String(dataFim.getUTCMonth() + 1).padStart(2, "0")}-${String(dataFim.getUTCDate()).padStart(2, "0")}`;
+
+  return `${dataFimStr}T${String(horaFim).padStart(2, "0")}:${String(minutoFim).padStart(2, "0")}`;
+}
+
+function calcularDataHoraFimPadrao(dataHoraInicio: string, solicitacao: SolicitacaoDemo): string {
+  if (solicitacao.data_hora_agendada_fim) return solicitacao.data_hora_agendada_fim.slice(0, 16);
+  if (solicitacao.data_desejada && solicitacao.horario_fim_desejado) {
+    const dataHoraSugerida = `${solicitacao.data_desejada}T${solicitacao.horario_fim_desejado}`;
+    if (dataHoraSugerida > dataHoraInicio) return dataHoraSugerida;
+  }
+  return somarMinutos(dataHoraInicio, 60);
+}
+
 export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string }) {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[]>([]);
   const [apresentadores, setApresentadores] = useState<Apresentador[]>([]);
@@ -56,22 +82,32 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
       />
 
       <div className="flex gap-2 text-sm flex-wrap">
-        {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setFiltro(s as any)}
-            className={`rounded-full px-3 py-1 flex items-center gap-2 ${
-              filtro === s ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-700"
-            }`}
-          >
-            <span>{s === "todos" ? "Todos" : s[0].toUpperCase() + s.slice(1)}</span>
-            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${
-              filtro === s ? "bg-slate-700" : "bg-slate-300"
-            }`}>
-              {contadores[s as keyof typeof contadores]}
-            </span>
-          </button>
-        ))}
+        {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => {
+          const contagem = contadores[s as keyof typeof contadores];
+          const alertaSolicitado = s === "solicitado" && contagem > 0;
+          return (
+            <button
+              key={s}
+              onClick={() => setFiltro(s as any)}
+              className={`rounded-full px-3 py-1 flex items-center gap-2 ${
+                alertaSolicitado
+                  ? `bg-red-600 text-white animate-pulse ${filtro === s ? "ring-2 ring-red-900" : ""}`
+                  : filtro === s
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-200 text-slate-700"
+              }`}
+            >
+              <span>{s === "todos" ? "Todos" : s[0].toUpperCase() + s.slice(1)}</span>
+              <span
+                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${
+                  alertaSolicitado ? "bg-red-800" : filtro === s ? "bg-slate-700" : "bg-slate-300"
+                }`}
+              >
+                {contagem}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {carregando ? (
@@ -112,6 +148,13 @@ function SolicitacaoCard({
     solicitacao.data_hora_agendada?.slice(0, 16) ||
       (solicitacao.data_desejada ? `${solicitacao.data_desejada}T09:00` : "")
   );
+  const [dataHoraFim, setDataHoraFim] = useState(() =>
+    calcularDataHoraFimPadrao(
+      solicitacao.data_hora_agendada?.slice(0, 16) ||
+        (solicitacao.data_desejada ? `${solicitacao.data_desejada}T09:00` : ""),
+      solicitacao
+    )
+  );
   const [agendadoPor, setAgendadoPor] = useState(solicitacao.agendado_por || nomeUsuario);
   const [linkOuLocal, setLinkOuLocal] = useState(solicitacao.link_ou_local || "");
   const [apresentador, setApresentador] = useState(solicitacao.apresentador || "");
@@ -132,10 +175,11 @@ function SolicitacaoCard({
 
   useLayoutEffect(() => {
     setSolicitacao(initialSolicitacao);
-    setDataHora(
+    const dataHoraInicial =
       initialSolicitacao.data_hora_agendada?.slice(0, 16) ||
-        (initialSolicitacao.data_desejada ? `${initialSolicitacao.data_desejada}T09:00` : "")
-    );
+      (initialSolicitacao.data_desejada ? `${initialSolicitacao.data_desejada}T09:00` : "");
+    setDataHora(dataHoraInicial);
+    setDataHoraFim(calcularDataHoraFimPadrao(dataHoraInicial, initialSolicitacao));
     setAgendadoPor(initialSolicitacao.agendado_por || nomeUsuario);
     setLinkOuLocal(initialSolicitacao.link_ou_local || "");
     setApresentador(initialSolicitacao.apresentador || "");
@@ -143,6 +187,10 @@ function SolicitacaoCard({
   }, [initialSolicitacao, nomeUsuario]);
 
   async function handleAgendar() {
+    if (dataHoraFim <= dataHora) {
+      setErroAcao("O horário de término deve ser depois do horário de início");
+      return;
+    }
     setSalvando(true);
     try {
       const res = await fetch(`/api/solicitacoes/${solicitacao.id}/agendar`, {
@@ -150,6 +198,7 @@ function SolicitacaoCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data_hora_agendada: dataHora,
+          data_hora_agendada_fim: dataHoraFim,
           agendado_por: agendadoPor,
           link_ou_local: linkOuLocal,
           apresentador: apresentador,
@@ -259,6 +308,8 @@ function SolicitacaoCard({
               {solicitacao.data_hora_agendada && (
                 <p className="text-xs text-blue-600 font-medium">
                   📅 Agendado para: {new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR")}
+                  {solicitacao.data_hora_agendada_fim &&
+                    ` até ${new Date(solicitacao.data_hora_agendada_fim).toLocaleTimeString("pt-BR")}`}
                 </p>
               )}
             </div>
@@ -375,13 +426,27 @@ function SolicitacaoCard({
 
           {solicitacao.status !== "cancelada" && (
             <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-3">
+              {(solicitacao.horario_inicio_desejado || solicitacao.horario_fim_desejado) && (
+                <p className="text-xs text-slate-600">
+                  Horário sugerido pelo solicitante: {solicitacao.horario_inicio_desejado || "-"} às{" "}
+                  {solicitacao.horario_fim_desejado || "-"}
+                </p>
+              )}
+              <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-4">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-700">Data/hora agendada</span>
+                  <span className="text-xs font-medium text-slate-700">Data/hora início</span>
                   <TextInput
                     type="datetime-local"
                     value={dataHora}
                     onChange={(e) => setDataHora(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-700">Data/hora término</span>
+                  <TextInput
+                    type="datetime-local"
+                    value={dataHoraFim}
+                    onChange={(e) => setDataHoraFim(e.target.value)}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -434,7 +499,7 @@ function SolicitacaoCard({
             {solicitacao.status === "solicitado" && (
               <button
                 onClick={handleAgendar}
-                disabled={salvando || !dataHora || !apresentador}
+                disabled={salvando || !dataHora || !dataHoraFim || dataHoraFim <= dataHora || !apresentador}
                 className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 Confirmar agendamento

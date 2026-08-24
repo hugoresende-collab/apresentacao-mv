@@ -59,6 +59,7 @@ export interface SolicitacaoDemo {
   observacoes: string | null;
   status: StatusSolicitacao;
   data_hora_agendada: string | null;
+  data_hora_agendada_fim: string | null;
   agendado_por: string | null;
   link_ou_local: string | null;
   apresentador: string | null;

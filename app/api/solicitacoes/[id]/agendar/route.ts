@@ -8,33 +8,12 @@ import { getSessionUser } from "@/lib/session";
 import { isAdmin } from "@/lib/types";
 import type { SolicitacaoDemo } from "@/lib/types";
 
-const DURACAO_EVENTO_MINUTOS = 60;
-
-// Monta início/fim como horário local "puro" (sem conversão de fuso),
-// pois o Google Calendar já recebe o timeZone "America/Sao_Paulo" separadamente.
-// Usar `new Date(...).toISOString()` aqui faria o servidor (que roda em UTC)
+// Formata como horário local "puro" (sem conversão de fuso), pois o Google
+// Calendar já recebe o timeZone "America/Sao_Paulo" separadamente. Usar
+// `new Date(...).toISOString()` aqui faria o servidor (que roda em UTC)
 // interpretar o horário errado e deslocar o evento em -3h.
-function calcularInicioFim(
-  dataHoraAgendada: string,
-  duracaoMinutos: number
-): { start: string; end: string } {
-  const [dataParte, horaParte] = dataHoraAgendada.split("T");
-  const [ano, mes, dia] = dataParte.split("-").map(Number);
-  const [hora, minuto] = horaParte.split(":").map(Number);
-
-  const totalMinutosFim = hora * 60 + minuto + duracaoMinutos;
-  const diasAdicionais = Math.floor(totalMinutosFim / (24 * 60));
-  const minutosFimNoDia = ((totalMinutosFim % (24 * 60)) + 24 * 60) % (24 * 60);
-  const horaFim = Math.floor(minutosFimNoDia / 60);
-  const minutoFim = minutosFimNoDia % 60;
-
-  const dataFimUtc = new Date(Date.UTC(ano, mes - 1, dia + diasAdicionais));
-  const dataFimStr = `${dataFimUtc.getUTCFullYear()}-${String(dataFimUtc.getUTCMonth() + 1).padStart(2, "0")}-${String(dataFimUtc.getUTCDate()).padStart(2, "0")}`;
-
-  return {
-    start: `${dataParte}T${horaParte}:00`,
-    end: `${dataFimStr}T${String(horaFim).padStart(2, "0")}:${String(minutoFim).padStart(2, "0")}:00`,
-  };
+function formatarDataHoraLocal(dataHora: string): string {
+  return dataHora.length === 16 ? `${dataHora}:00` : dataHora;
 }
 
 async function criarEventoNoCalendario(
@@ -71,7 +50,8 @@ async function criarEventoNoCalendario(
       refresh_token: apresentador.google_calendar_refresh_token,
     });
 
-    const { start, end } = calcularInicioFim(solicitacao.data_hora_agendada!, DURACAO_EVENTO_MINUTOS);
+    const start = formatarDataHoraLocal(solicitacao.data_hora_agendada!);
+    const end = formatarDataHoraLocal(solicitacao.data_hora_agendada_fim!);
 
     const { link, meetLink } = await createCalendarEvent(
       apresentador.google_calendar_token,
@@ -121,17 +101,35 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { data_hora_agendada, agendado_por, link_ou_local, apresentador, apresentador_id } = body;
+  const {
+    data_hora_agendada,
+    data_hora_agendada_fim,
+    agendado_por,
+    link_ou_local,
+    apresentador,
+    apresentador_id,
+  } = body;
 
-  if (!data_hora_agendada || !agendado_por || !apresentador) {
+  if (!data_hora_agendada || !data_hora_agendada_fim || !agendado_por || !apresentador) {
     return NextResponse.json(
-      { error: "data_hora_agendada, agendado_por e apresentador são obrigatórios" },
+      {
+        error:
+          "data_hora_agendada, data_hora_agendada_fim, agendado_por e apresentador são obrigatórios",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (data_hora_agendada_fim <= data_hora_agendada) {
+    return NextResponse.json(
+      { error: "O horário de término deve ser depois do horário de início" },
       { status: 400 }
     );
   }
 
   const solicitacao = await agendarSolicitacao(id, {
     data_hora_agendada,
+    data_hora_agendada_fim,
     agendado_por,
     link_ou_local: link_ou_local || null,
     apresentador,
@@ -146,6 +144,7 @@ export async function POST(
     solicitacaoFinal =
       (await agendarSolicitacao(id, {
         data_hora_agendada,
+        data_hora_agendada_fim,
         agendado_por,
         link_ou_local: calendarEvento.meetLink,
         apresentador,

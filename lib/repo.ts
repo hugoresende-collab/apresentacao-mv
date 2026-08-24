@@ -191,7 +191,13 @@ export async function buscarSolicitacao(id: string): Promise<SolicitacaoDemo | u
 
 export async function agendarSolicitacao(
   id: string,
-  data: { data_hora_agendada: string; agendado_por: string; link_ou_local: string | null; apresentador: string }
+  data: {
+    data_hora_agendada: string;
+    data_hora_agendada_fim?: string | null;
+    agendado_por: string;
+    link_ou_local: string | null;
+    apresentador: string;
+  }
 ): Promise<SolicitacaoDemo | undefined> {
   return withRetry(async () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
