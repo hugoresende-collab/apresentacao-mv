@@ -108,7 +108,10 @@ function SolicitacaoCard({
 }) {
   const [solicitacao, setSolicitacao] = useState(initialSolicitacao);
   const [aberto, setAberto] = useState(false);
-  const [dataHora, setDataHora] = useState(solicitacao.data_hora_agendada?.slice(0, 16) || "");
+  const [dataHora, setDataHora] = useState(
+    solicitacao.data_hora_agendada?.slice(0, 16) ||
+      (solicitacao.data_desejada ? `${solicitacao.data_desejada}T09:00` : "")
+  );
   const [agendadoPor, setAgendadoPor] = useState(solicitacao.agendado_por || nomeUsuario);
   const [linkOuLocal, setLinkOuLocal] = useState(solicitacao.link_ou_local || "");
   const [apresentador, setApresentador] = useState(solicitacao.apresentador || "");
@@ -129,7 +132,10 @@ function SolicitacaoCard({
 
   useLayoutEffect(() => {
     setSolicitacao(initialSolicitacao);
-    setDataHora(initialSolicitacao.data_hora_agendada?.slice(0, 16) || "");
+    setDataHora(
+      initialSolicitacao.data_hora_agendada?.slice(0, 16) ||
+        (initialSolicitacao.data_desejada ? `${initialSolicitacao.data_desejada}T09:00` : "")
+    );
     setAgendadoPor(initialSolicitacao.agendado_por || nomeUsuario);
     setLinkOuLocal(initialSolicitacao.link_ou_local || "");
     setApresentador(initialSolicitacao.apresentador || "");
@@ -415,7 +421,7 @@ function SolicitacaoCard({
                   {apresentador && apresentadorId && (
                     <GoogleCalendarPicker
                       apresentadorId={apresentadorId}
-                      dataSelecionada={solicitacao.data_desejada}
+                      dataSelecionada={dataHora ? dataHora.slice(0, 10) : solicitacao.data_desejada}
                       onHorarioSelecionado={(dataHora) => setDataHora(dataHora)}
                     />
                   )}

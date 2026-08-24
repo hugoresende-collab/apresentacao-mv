@@ -82,12 +82,17 @@ export function GoogleCalendarPicker({
   function getHorariosOcupados(): Set<string> {
     const ocupados = new Set<string>();
     eventos.forEach((evento) => {
-      const inicio = evento.start?.dateTime || evento.start?.date;
-      const fim = evento.end?.dateTime || evento.end?.date;
+      // Eventos de dia inteiro (sem horário definido) não bloqueiam a agenda
+      const inicio = evento.start?.dateTime;
+      const fim = evento.end?.dateTime;
 
       if (inicio && fim) {
         const inicioDate = new Date(inicio);
         const fimDate = new Date(fim);
+
+        // Só considerar eventos que ocorrem no dia selecionado
+        const inicioDiaLocal = `${inicioDate.getFullYear()}-${String(inicioDate.getMonth() + 1).padStart(2, "0")}-${String(inicioDate.getDate()).padStart(2, "0")}`;
+        if (inicioDiaLocal !== dataSelecionada) return;
 
         // Marcar todos os slots de 30 min entre início e fim como ocupados
         let current = new Date(inicioDate);
@@ -113,7 +118,9 @@ export function GoogleCalendarPicker({
       {!carregando && !erro && (
         <div className="space-y-3">
           <div>
-            <p className="text-xs font-medium text-slate-700 mb-2">Horários disponíveis para {dataSelecionada}:</p>
+            <p className="text-xs font-medium text-slate-700 mb-2">
+              Horários disponíveis para {dataSelecionada} — altere o campo &quot;Data/hora agendada&quot; acima para ver outra data:
+            </p>
             <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
               {horarios.map((horario) => {
                 const disponivel = !horariosOcupados.has(horario);
