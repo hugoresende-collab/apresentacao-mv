@@ -135,7 +135,7 @@ export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: Solicit
     to: solicitacao.gerente_conta_email,
     subject: `Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
     html: `
-      <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time administrativo vai agendar em breve.</p>
+      <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time da hospitalar vai analisar e agendar em breve.</p>
       ${resumoSolicitacaoHtml(solicitacao)}
     `,
   });
@@ -149,7 +149,7 @@ export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: Soli
       html: `
         <p>Nova solicitação de demonstração recebida.</p>
         ${resumoSolicitacaoHtml(solicitacao)}
-        <p><a href="${APP_URL}/agendar">Agendar esta demonstração</a></p>
+        <p><a href="${APP_URL}/gestao">Agendar esta demonstração</a></p>
       `,
     })
   );
