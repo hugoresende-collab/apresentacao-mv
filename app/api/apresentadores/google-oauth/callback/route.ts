@@ -49,32 +49,40 @@ export async function GET(request: NextRequest) {
     // Salvar no banco de dados
     const db = getDb();
 
-    // Primeiro, buscar o apresentador existente para manter o email original
+    // Primeiro, buscar o apresentador existente (a coluna "nome" não tem
+    // constraint UNIQUE, então upsert com onConflict não funciona aqui)
     const { data: apresentadorExistente } = await db
       .from("apresentadores")
-      .select("email")
+      .select("id, email")
       .eq("nome", apresentadorNome)
       .single();
 
-    const emailParaSalvar = apresentadorExistente?.email || "unknown@mv.com.br";
+    const dadosCalendario = {
+      google_calendar_id: calendarId,
+      google_calendar_token: tokens.access_token,
+      google_calendar_refresh_token: tokens.refresh_token || null,
+      autorizado_por: user.email,
+      data_autorizacao: nowIso(),
+      updated_at: nowIso(),
+    };
 
-    const { data: apresentador, error } = await db
-      .from("apresentadores")
-      .upsert(
-        {
-          nome: apresentadorNome,
-          email: emailParaSalvar,
-          google_calendar_id: calendarId,
-          google_calendar_token: tokens.access_token,
-          google_calendar_refresh_token: tokens.refresh_token || null,
-          autorizado_por: user.email,
-          data_autorizacao: nowIso(),
-          updated_at: nowIso(),
-        },
-        { onConflict: "nome" }
-      )
-      .select()
-      .single();
+    const { data: apresentador, error } = apresentadorExistente
+      ? await db
+          .from("apresentadores")
+          .update(dadosCalendario)
+          .eq("id", apresentadorExistente.id)
+          .select()
+          .single()
+      : await db
+          .from("apresentadores")
+          .insert({
+            id: crypto.randomUUID(),
+            nome: apresentadorNome,
+            email: "unknown@mv.com.br",
+            ...dadosCalendario,
+          })
+          .select()
+          .single();
 
     if (error) {
       console.error("Erro ao salvar apresentador:", error);
