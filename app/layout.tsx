@@ -39,7 +39,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-row bg-gray-50 text-slate-900">
         {user && <NpsPendenteFetcher />}
         {user && <Sidebar user={user} />}
-        <main className="flex-1 px-8 py-8">{children}</main>
+        <main className="flex-1 px-8 pt-20 pb-8 md:pt-8">{children}</main>
       </body>
     </html>
   );
