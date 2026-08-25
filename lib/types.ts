@@ -205,7 +205,6 @@ export const PERCENTUAIS_EVOLUCAO_CRM = [
 
 export const ADMIN_EMAILS = [
   "hugo.resende@mv.com.br",
-  "rafael.bloise@mv.com.br",
   "vjunior@mv.com.br",
   "barbara.moutinho@mv.com.br",
   "ana.mendonca@mv.com.br",
