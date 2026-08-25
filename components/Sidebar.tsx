@@ -15,18 +15,65 @@ interface SidebarProps {
   };
 }
 
-const ITEMS_COLABORADOR = [
-  { href: "/", label: "Nova demonstração" },
-  { href: "/minhas-solicitacoes", label: "Minhas demonstrações" },
+type IconeNome = "solicitar" | "historico" | "gestao" | "dashboard" | "apresentadores";
+
+const ITEMS_COLABORADOR: { href: string; label: string; icone: IconeNome }[] = [
+  { href: "/", label: "Solicitar", icone: "solicitar" },
+  { href: "/minhas-solicitacoes", label: "Histórico", icone: "historico" },
 ];
 
-const ITEMS_ADMIN = [
-  { href: "/", label: "Nova demonstração" },
-  { href: "/minhas-solicitacoes", label: "Minhas demonstrações" },
-  { href: "/gestao", label: "Gestão" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/gerenciar-apresentadores", label: "Apresentadores" },
+const ITEMS_ADMIN: { href: string; label: string; icone: IconeNome }[] = [
+  { href: "/", label: "Solicitar", icone: "solicitar" },
+  { href: "/minhas-solicitacoes", label: "Histórico", icone: "historico" },
+  { href: "/gestao", label: "Gestão", icone: "gestao" },
+  { href: "/dashboard", label: "Dashboard", icone: "dashboard" },
+  { href: "/gerenciar-apresentadores", label: "Apresentadores", icone: "apresentadores" },
 ];
+
+function IconeMenu({ nome }: { nome: IconeNome }) {
+  const props = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 } as const;
+  switch (nome) {
+    case "solicitar":
+      return (
+        <svg {...props} className="h-4 w-4 flex-shrink-0">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+        </svg>
+      );
+    case "historico":
+      return (
+        <svg {...props} className="h-4 w-4 flex-shrink-0">
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+        </svg>
+      );
+    case "gestao":
+      return (
+        <svg {...props} className="h-4 w-4 flex-shrink-0">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 13l2 2 4-4" />
+        </svg>
+      );
+    case "dashboard":
+      return (
+        <svg {...props} className="h-4 w-4 flex-shrink-0">
+          <rect x="3" y="3" width="7" height="9" rx="1" />
+          <rect x="14" y="3" width="7" height="5" rx="1" />
+          <rect x="14" y="12" width="7" height="9" rx="1" />
+          <rect x="3" y="16" width="7" height="5" rx="1" />
+        </svg>
+      );
+    case "apresentadores":
+      return (
+        <svg {...props} className="h-4 w-4 flex-shrink-0">
+          <circle cx="9" cy="8" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+          <circle cx="17" cy="8" r="2.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 14.2c2.3.4 4 2.4 4 4.8" />
+        </svg>
+      );
+  }
+}
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
@@ -106,13 +153,16 @@ export function Sidebar({ user }: SidebarProps) {
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+              className={`flex items-center justify-between px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                 isActive(item.href)
                   ? "bg-[#214B63] text-white"
                   : "text-gray-600 hover:bg-blue-50 hover:text-[#214B63]"
               }`}
             >
-              <span>{item.label}</span>
+              <span className="flex items-center gap-2">
+                <IconeMenu nome={item.icone} />
+                {item.label}
+              </span>
               {item.href === "/gestao" && solicitadosPendentes > 0 && (
                 <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Solicitações pendentes" />
               )}
