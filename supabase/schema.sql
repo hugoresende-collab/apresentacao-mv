@@ -7,6 +7,7 @@ create table if not exists solicitacoes_demo (
   id uuid primary key default gen_random_uuid(),
   gerente_conta_nome text not null,
   gerente_conta_email text,
+  gerente_conta_avatar_url text,
   unidade_regional text not null,
   nome_instituicao text not null,
   natureza_instituicao text not null,

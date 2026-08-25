@@ -5,11 +5,13 @@ import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { isAdmin } from "@/lib/types";
+import { Avatar } from "@/components/Avatar";
 
 interface SidebarProps {
   user: {
     nome: string;
     email: string;
+    avatarUrl?: string;
   };
 }
 
@@ -96,9 +98,12 @@ export function Sidebar({ user }: SidebarProps) {
           ))}
         </nav>
         <div className="border-t border-gray-200 p-3 space-y-2">
-          <div className="text-xs px-3">
-            <p className="font-semibold text-[#214B63]">{user.nome}</p>
-            <p className="text-gray-500 truncate text-xs">{user.email}</p>
+          <div className="flex items-center gap-2 px-3">
+            <Avatar nome={user.nome} url={user.avatarUrl} size={32} />
+            <div className="text-xs min-w-0">
+              <p className="font-semibold text-[#214B63] truncate">{user.nome}</p>
+              <p className="text-gray-500 truncate text-xs">{user.email}</p>
+            </div>
           </div>
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className="w-full px-3 py-2 text-xs font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors text-left cursor-pointer">

@@ -19,6 +19,7 @@ import {
   NUMERO_VISITAS_OPCOES,
   SOLUCOES_ATUAIS,
   PERCENTUAIS_EVOLUCAO_CRM,
+  DUPLICAR_STORAGE_KEY,
 } from "@/lib/types";
 
 function estadoInicial(nome: string, email: string) {
@@ -82,7 +83,10 @@ export default function NovaSolicitacaoForm({
   const [enviado, setEnviado] = useState(false);
   const [mostrarData2, setMostrarData2] = useState(false);
   const [mostrarData3, setMostrarData3] = useState(false);
+  const [duplicado, setDuplicado] = useState(false);
   const qualificacaoObrigatoria = form.tipo_oportunidade === "Cliente Novo";
+  const observacaoObrigatoria =
+    form.tipo_oportunidade === "Venda Base - Novo Módulo" || form.tipo_oportunidade === "Venda Base - Mobilidade";
 
   useEffect(() => {
     if (erro) {
@@ -90,6 +94,28 @@ export default function NovaSolicitacaoForm({
       return () => clearTimeout(timer);
     }
   }, [erro]);
+
+  useEffect(() => {
+    const dadosDuplicados = sessionStorage.getItem(DUPLICAR_STORAGE_KEY);
+    if (!dadosDuplicados) return;
+    sessionStorage.removeItem(DUPLICAR_STORAGE_KEY);
+    try {
+      const dados = JSON.parse(dadosDuplicados);
+      setForm((prev) => ({
+        ...prev,
+        ...dados,
+        valor_aproximado_projeto: dados.valor_aproximado_projeto
+          ? Number(dados.valor_aproximado_projeto).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "",
+      }));
+      setDuplicado(true);
+    } catch (e) {
+      console.error("Erro ao carregar dados duplicados:", e);
+    }
+  }, []);
 
   function getMinDataPresencial(): string {
     const hoje = new Date();
@@ -144,6 +170,13 @@ export default function NovaSolicitacaoForm({
 
     if (form.solucao_atual === "Outros" && !form.solucao_atual_outros.trim()) {
       setErro("Informe qual é a solução atual utilizada pelo cliente/prospect.");
+      return;
+    }
+
+    if (observacaoObrigatoria && !form.observacao_apresentacao.trim()) {
+      setErro(
+        "Para oportunidades do tipo 'Novo Módulo' ou 'Mobilidade', a observação da apresentação é obrigatória."
+      );
       return;
     }
 
@@ -203,6 +236,12 @@ export default function NovaSolicitacaoForm({
         titulo="Solicitar demonstração"
         subtitulo="Preencha os dados abaixo. O administrativo receberá a solicitação e fará o agendamento."
       />
+
+      {duplicado && (
+        <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+          Dados copiados de outra solicitação. Ajuste o que for necessário e envie para gerar um novo código.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className={`space-y-8 ${enviado ? "pointer-events-none opacity-60" : ""}`}>
         <Secao titulo="Solicitante e instituição">
@@ -291,8 +330,9 @@ export default function NovaSolicitacaoForm({
               onChange={(e) => update("produto_apresentar", e.target.value)}
             />
           </FormField>
-          <FormField label="Observação da apresentação">
+          <FormField label="Observação da apresentação" required={observacaoObrigatoria}>
             <TextArea
+              required={observacaoObrigatoria}
               value={form.observacao_apresentacao}
               onChange={(e) => update("observacao_apresentacao", e.target.value)}
               placeholder="Ex: especificar qual módulo, escopo da apresentação, etc."

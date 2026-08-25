@@ -79,7 +79,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const solicitacao = await criarSolicitacao(body);
+    const TIPOS_OPORTUNIDADE_EXIGEM_OBSERVACAO = ["Venda Base - Novo Módulo", "Venda Base - Mobilidade"];
+    if (
+      TIPOS_OPORTUNIDADE_EXIGEM_OBSERVACAO.includes(body.tipo_oportunidade) &&
+      !body.observacao_apresentacao?.trim()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Para oportunidades do tipo 'Novo Módulo' ou 'Mobilidade', a observação da apresentação é obrigatória.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const user = await getSessionUser();
+    const solicitacao = await criarSolicitacao({
+      ...body,
+      gerente_conta_avatar_url: user?.avatarUrl || null,
+    });
 
     const [emailSolicitante, emailAdministrativo, googleChat] = await Promise.all([
       notificarComFallback("email solicitante", notificarNovaSolicitacaoAoSolicitante(solicitacao)),

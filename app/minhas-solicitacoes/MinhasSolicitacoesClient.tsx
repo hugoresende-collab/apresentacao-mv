@@ -5,8 +5,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput, TextArea } from "@/components/FormField";
+import { useRouter } from "next/navigation";
 import { NpsModal } from "@/components/NpsModal";
 import { ErrorToast } from "@/components/ErrorToast";
+import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
+import { DUPLICAR_STORAGE_KEY } from "@/lib/types";
 import type { SolicitacaoDemo } from "@/lib/types";
 
 export default function MinhasSolicitacoesClient() {
@@ -94,7 +97,9 @@ export default function MinhasSolicitacoesClient() {
 }
 
 function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: SolicitacaoDemo }) {
+  const router = useRouter();
   const [solicitacao, setSolicitacao] = useState(initialSolicitacao);
+  const [aberto, setAberto] = useState(false);
   const [confirmaCancelar, setConfirmaCancelar] = useState<"confirmar" | "motivo" | false>(false);
   const [cancelando, setCancelando] = useState(false);
   const [npsDados, setNpsDados] = useState<{ nota: number } | null>(null);
@@ -206,12 +211,97 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
     setRemarcarLoading(false);
   }
 
+  function handleDuplicar() {
+    const {
+      unidade_regional,
+      nome_instituicao,
+      natureza_instituicao,
+      porte_instituicao,
+      cidade,
+      tipo_unidade,
+      solucao_atual,
+      solucao_atual_outros,
+      tipo_oportunidade,
+      tipo_projeto,
+      produto_apresentar,
+      observacao_apresentacao,
+      nome_patrocinador,
+      email_patrocinador,
+      codigo_oportunidade,
+      numero_visitas,
+      valor_aproximado_projeto,
+      percentual_evolucao_crm,
+      atende_sus,
+      atende_convenio_particular,
+      possui_pronto_socorro,
+      possui_ambulatorio,
+      dor_prospect,
+      problemas_atendimento_paciente,
+      problemas_area_assistencial,
+      problemas_suprimentos,
+      problemas_faturamento,
+      problemas_financeiro_contabil,
+      problemas_diagnostico_terapia,
+      tipo_apresentacao,
+      endereco_apresentacao,
+      periodo,
+      horario_inicio_desejado,
+      horario_fim_desejado,
+      observacoes,
+    } = solicitacao;
+
+    sessionStorage.setItem(
+      DUPLICAR_STORAGE_KEY,
+      JSON.stringify({
+        unidade_regional,
+        nome_instituicao,
+        natureza_instituicao,
+        porte_instituicao,
+        cidade,
+        tipo_unidade,
+        solucao_atual,
+        solucao_atual_outros,
+        tipo_oportunidade,
+        tipo_projeto,
+        produto_apresentar,
+        observacao_apresentacao,
+        nome_patrocinador,
+        email_patrocinador,
+        codigo_oportunidade,
+        numero_visitas,
+        valor_aproximado_projeto,
+        percentual_evolucao_crm,
+        atende_sus,
+        atende_convenio_particular,
+        possui_pronto_socorro,
+        possui_ambulatorio,
+        dor_prospect,
+        problemas_atendimento_paciente,
+        problemas_area_assistencial,
+        problemas_suprimentos,
+        problemas_faturamento,
+        problemas_financeiro_contabil,
+        problemas_diagnostico_terapia,
+        tipo_apresentacao,
+        endereco_apresentacao,
+        periodo,
+        horario_inicio_desejado,
+        horario_fim_desejado,
+        observacoes,
+      })
+    );
+    router.push("/");
+  }
+
   return (
     <>
       {erroAcao && <ErrorToast titulo="Erro" mensagem={erroAcao} />}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-4">
+        <button
+          className="flex w-full items-start justify-between gap-4 text-left"
+          onClick={() => setAberto(!aberto)}
+        >
           <div className="flex-1">
             <p className="font-medium text-slate-900">
               {solicitacao.nome_instituicao} — {solicitacao.produto_apresentar}
@@ -229,7 +319,13 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
           <div className="flex-shrink-0 pt-1">
             <StatusBadge status={solicitacao.status} />
           </div>
-        </div>
+        </button>
+
+        {aberto && (
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            <SolicitacaoDetalhes solicitacao={solicitacao} />
+          </div>
+        )}
 
         {solicitacao.status === "demo agendada" || solicitacao.status === "realizada" ? (
           <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-sm">
@@ -286,6 +382,12 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
               Cancelar solicitação
             </button>
           )}
+          <button
+            onClick={handleDuplicar}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          >
+            Duplicar
+          </button>
         </div>
       </div>
 

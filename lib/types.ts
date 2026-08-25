@@ -1,3 +1,5 @@
+export const DUPLICAR_STORAGE_KEY = "duplicar-solicitacao";
+
 export type StatusSolicitacao = "solicitado" | "demo agendada" | "realizada" | "cancelada";
 export type UserRole = "colaborador" | "admin" | "apresentador";
 
@@ -18,6 +20,7 @@ export interface SolicitacaoDemo {
   id: string;
   gerente_conta_nome: string;
   gerente_conta_email: string;
+  gerente_conta_avatar_url: string | null;
   unidade_regional: string;
   nome_instituicao: string;
   natureza_instituicao: string;

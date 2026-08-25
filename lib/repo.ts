@@ -14,6 +14,7 @@ export type NovaSolicitacaoInput = Omit<
 >;
 
 const CAMPOS_OPCIONAIS_TEXTO: (keyof NovaSolicitacaoInput)[] = [
+  "gerente_conta_avatar_url",
   "solucao_atual",
   "solucao_atual_outros",
   "tipo_projeto",
