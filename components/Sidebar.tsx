@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { isAdmin } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
@@ -33,11 +33,30 @@ export function Sidebar({ user }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const userIsAdmin = isAdmin(user.email);
   const navItems = userIsAdmin ? ITEMS_ADMIN : ITEMS_COLABORADOR;
+  const [solicitadosPendentes, setSolicitadosPendentes] = useState(0);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  useEffect(() => {
+    if (!userIsAdmin) return;
+
+    const verificarPendentes = async () => {
+      try {
+        const res = await fetch("/api/solicitacoes/contagem-solicitado");
+        const data = await res.json();
+        setSolicitadosPendentes(data.count || 0);
+      } catch (error) {
+        console.error("Erro ao verificar solicitações pendentes:", error);
+      }
+    };
+
+    verificarPendentes();
+    const interval = setInterval(verificarPendentes, 30000);
+    return () => clearInterval(interval);
+  }, [userIsAdmin]);
 
   return (
     <>
@@ -87,13 +106,16 @@ export function Sidebar({ user }: SidebarProps) {
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`block px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+              className={`flex items-center justify-between px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                 isActive(item.href)
                   ? "bg-[#214B63] text-white"
                   : "text-gray-600 hover:bg-blue-50 hover:text-[#214B63]"
               }`}
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.href === "/gestao" && solicitadosPendentes > 0 && (
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Solicitações pendentes" />
+              )}
             </Link>
           ))}
         </nav>

@@ -143,6 +143,35 @@ export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<
   });
 }
 
+export async function contarSolicitacoesPorStatus(status: StatusSolicitacao): Promise<number> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase credentials");
+  }
+
+  const response = await fetch(
+    `${url}/rest/v1/solicitacoes_demo?select=id&status=eq.${encodeURIComponent(status)}`,
+    {
+      method: "HEAD",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "apikey": key,
+        "Prefer": "count=exact",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to count solicitacoes");
+  }
+
+  const contentRange = response.headers.get("content-range");
+  const total = contentRange?.split("/")[1];
+  return total ? parseInt(total, 10) : 0;
+}
+
 export async function listarSolicitacoes(filtro?: { gerenteContaEmail?: string }): Promise<SolicitacaoDemo[]> {
   return withRetry(async () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
