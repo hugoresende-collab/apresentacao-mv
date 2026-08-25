@@ -232,10 +232,7 @@ export default function NovaSolicitacaoForm({
         />
       )}
 
-      <PageHeader
-        titulo="Solicitar demonstração"
-        subtitulo="Preencha os dados abaixo. O administrativo receberá a solicitação e fará o agendamento."
-      />
+      <PageHeader titulo="Solicitar demonstração" />
 
       {duplicado && (
         <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">

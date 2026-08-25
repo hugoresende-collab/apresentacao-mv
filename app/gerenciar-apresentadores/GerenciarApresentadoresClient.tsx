@@ -130,10 +130,7 @@ export default function GerenciarApresentadoresClient({ nomeUsuario }: { nomeUsu
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        titulo="Gerenciar Apresentadores"
-        subtitulo="Adicione, remova e configure as credenciais do Google Calendar para cada apresentador."
-      />
+      <PageHeader titulo="Gerenciar Apresentadores" />
 
       {/* Formulário de adição */}
       <div className="rounded-lg border border-slate-200 bg-white p-4">

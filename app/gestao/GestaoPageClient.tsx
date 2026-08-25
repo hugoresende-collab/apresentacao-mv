@@ -78,10 +78,7 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        titulo="Gestão de demonstrações"
-        subtitulo="Gerencie solicitações, confirme agendamentos e acompanhe status."
-      />
+      <PageHeader titulo="Gestão de demonstrações" />
 
       <div className="flex gap-2 text-sm flex-wrap">
         {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => {

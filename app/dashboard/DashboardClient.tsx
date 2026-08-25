@@ -37,10 +37,7 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        titulo="Dashboard"
-        subtitulo="Métricas e performance de demonstrações"
-      />
+      <PageHeader titulo="Dashboard" />
 
       {/* Abas */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">

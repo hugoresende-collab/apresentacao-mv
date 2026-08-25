@@ -69,10 +69,7 @@ export default function MinhasSolicitacoesClient() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        titulo="Minhas solicitações"
-        subtitulo="Acompanhe o status das demonstrações que você solicitou."
-      />
+      <PageHeader titulo="Minhas solicitações" />
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 
