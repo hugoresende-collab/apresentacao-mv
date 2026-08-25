@@ -72,11 +72,34 @@ export async function createCalendarEvent(
     end: string;
     location?: string;
     attendees?: { email: string; displayName?: string }[];
+  },
+  refreshOptions?: {
+    refreshToken: string | null;
+    onTokenRefreshed?: (novoAccessToken: string) => Promise<void> | void;
   }
 ): Promise<{ link: string; meetLink: string | null }> {
   try {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
+    // O access_token de um apresentador expira ~1h após a autorização. Sem
+    // client id/secret + refresh_token aqui, o OAuth2Client não consegue
+    // renovar sozinho e a chamada falha com "invalid authentication credentials".
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    auth.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshOptions?.refreshToken || undefined,
+    });
+
+    if (refreshOptions?.onTokenRefreshed) {
+      auth.on("tokens", (tokens) => {
+        if (tokens.access_token) {
+          Promise.resolve(refreshOptions.onTokenRefreshed!(tokens.access_token)).catch((e) =>
+            console.error("Erro ao persistir access_token renovado:", e)
+          );
+        }
+      });
+    }
 
     const response = await calendar.events.insert({
       auth,

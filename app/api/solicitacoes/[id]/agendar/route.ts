@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
 import { agendarSolicitacao, buscarSolicitacao } from "@/lib/repo";
 import { notificarAgendamentoConfirmado } from "@/lib/email";
 import { createCalendarEvent } from "@/lib/google-calendar";
@@ -40,16 +39,6 @@ async function criarEventoNoCalendario(
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/apresentadores/google-oauth/callback`
-    );
-    oauth2Client.setCredentials({
-      access_token: apresentador.google_calendar_token,
-      refresh_token: apresentador.google_calendar_refresh_token,
-    });
-
     const start = formatarDataHoraLocal(solicitacao.data_hora_agendada!);
     const end = formatarDataHoraLocal(solicitacao.data_hora_agendada_fim!);
 
@@ -72,6 +61,15 @@ async function criarEventoNoCalendario(
         attendees: solicitacao.gerente_conta_email
           ? [{ email: solicitacao.gerente_conta_email, displayName: solicitacao.gerente_conta_nome }]
           : undefined,
+      },
+      {
+        refreshToken: apresentador.google_calendar_refresh_token,
+        onTokenRefreshed: async (novoAccessToken) => {
+          await db
+            .from("apresentadores")
+            .update({ google_calendar_token: novoAccessToken })
+            .eq("id", apresentadorId);
+        },
       }
     );
 
