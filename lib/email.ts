@@ -247,7 +247,7 @@ export async function solicitarNps(solicitacao: SolicitacaoDemo) {
         <li>Todas as necessidades da instituição foram cobertas?</li>
         <li>Qual foi seu feedback geral sobre a apresentação?</li>
       </ul>
-      <p><a href="${APP_URL}/nps/${solicitacao.id}">Avaliar agora</a></p>
+      <p><a href="${APP_URL}/">Avaliar agora</a></p>
       <p>Sua avaliação nos ajuda a melhorar continuamente o atendimento.</p>
     `,
   });
