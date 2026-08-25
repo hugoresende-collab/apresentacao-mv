@@ -62,6 +62,46 @@ export async function getAvailableSlots(
   }
 }
 
+export async function cancelCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  refreshOptions?: {
+    refreshToken: string | null;
+    onTokenRefreshed?: (novoAccessToken: string) => Promise<void> | void;
+  }
+): Promise<void> {
+  try {
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    auth.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshOptions?.refreshToken || undefined,
+    });
+
+    if (refreshOptions?.onTokenRefreshed) {
+      auth.on("tokens", (tokens) => {
+        if (tokens.access_token) {
+          Promise.resolve(refreshOptions.onTokenRefreshed!(tokens.access_token)).catch((e) =>
+            console.error("Erro ao persistir access_token renovado:", e)
+          );
+        }
+      });
+    }
+
+    await calendar.events.delete({
+      auth,
+      calendarId,
+      eventId,
+    });
+  } catch (error) {
+    console.error("Erro ao cancelar evento no Google Calendar:", error);
+    throw error;
+  }
+}
+
 export async function createCalendarEvent(
   accessToken: string,
   calendarId: string,
@@ -77,7 +117,7 @@ export async function createCalendarEvent(
     refreshToken: string | null;
     onTokenRefreshed?: (novoAccessToken: string) => Promise<void> | void;
   }
-): Promise<{ link: string; meetLink: string | null }> {
+): Promise<{ link: string; meetLink: string | null; eventId: string }> {
   try {
     // O access_token de um apresentador expira ~1h após a autorização. Sem
     // client id/secret + refresh_token aqui, o OAuth2Client não consegue
@@ -128,7 +168,11 @@ export async function createCalendarEvent(
       response.data.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ||
       null;
 
-    return { link: response.data.htmlLink || "", meetLink };
+    return {
+      link: response.data.htmlLink || "",
+      meetLink,
+      eventId: response.data.id || ""
+    };
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar:", error);
     throw error;

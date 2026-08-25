@@ -42,6 +42,7 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
   const [apresentadores, setApresentadores] = useState<Apresentador[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<StatusSolicitacao | "todos">("todos");
+  const [buscaCodigo, setBuscaCodigo] = useState("");
 
   async function carregar() {
     setCarregando(true);
@@ -66,7 +67,11 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
     carregar();
   }, []);
 
-  const filtradas = solicitacoes.filter((s) => filtro === "todos" || s.status === filtro);
+  const filtradas = solicitacoes.filter((s) => {
+    const matchStatus = filtro === "todos" || s.status === filtro;
+    const matchCodigo = buscaCodigo === "" || (s.codigo_solicitacao?.toLowerCase().includes(buscaCodigo.toLowerCase()));
+    return matchStatus && matchCodigo;
+  });
 
   const contadores = {
     todos: solicitacoes.length,
@@ -79,6 +84,14 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
   return (
     <div className="space-y-6">
       <PageHeader titulo="Gestão de demonstrações" />
+
+      <TextInput
+        type="text"
+        placeholder="Buscar por código da solicitação..."
+        value={buscaCodigo}
+        onChange={(e) => setBuscaCodigo(e.target.value)}
+        className="max-w-xs"
+      />
 
       <div className="flex gap-2 text-sm flex-wrap">
         {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => {

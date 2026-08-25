@@ -17,13 +17,13 @@ function formatarDataHoraLocal(dataHora: string): string {
 
 async function criarEventoNoCalendario(
   apresentadorId: string,
-  solicitacao: SolicitacaoDemo
-): Promise<{ criado: boolean; link?: string; meetLink?: string | null; motivo?: string }> {
+  solicitacao: SolicitacaoDemo,
+  db: ReturnType<typeof getDb>
+): Promise<{ criado: boolean; link?: string; meetLink?: string | null; eventId?: string; motivo?: string }> {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return { criado: false, motivo: "Google OAuth não está configurado" };
   }
 
-  const db = getDb();
   const { data: apresentador, error } = await db
     .from("apresentadores")
     .select("*")
@@ -42,7 +42,7 @@ async function criarEventoNoCalendario(
     const start = formatarDataHoraLocal(solicitacao.data_hora_agendada!);
     const end = formatarDataHoraLocal(solicitacao.data_hora_agendada_fim!);
 
-    const { link, meetLink } = await createCalendarEvent(
+    const { link, meetLink, eventId } = await createCalendarEvent(
       apresentador.google_calendar_token,
       apresentador.google_calendar_id || "primary",
       {
@@ -73,7 +73,7 @@ async function criarEventoNoCalendario(
       }
     );
 
-    return { criado: true, link, meetLink };
+    return { criado: true, link, meetLink, eventId };
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar do apresentador:", error);
     return {
@@ -93,6 +93,7 @@ export async function POST(
   }
 
   const { id } = await params;
+  const db = getDb();
   const existente = await buscarSolicitacao(id);
   if (!existente) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
@@ -134,7 +135,7 @@ export async function POST(
   });
 
   const calendarEvento = apresentador_id
-    ? await criarEventoNoCalendario(apresentador_id, solicitacao!)
+    ? await criarEventoNoCalendario(apresentador_id, solicitacao!, db)
     : { criado: false, motivo: "Apresentador sem id vinculado" };
 
   let solicitacaoFinal = solicitacao!;
@@ -147,6 +148,13 @@ export async function POST(
         link_ou_local: calendarEvento.meetLink,
         apresentador,
       })) || solicitacaoFinal;
+  }
+
+  if (calendarEvento.criado && calendarEvento.eventId) {
+    await db
+      .from("solicitacoes_demo")
+      .update({ google_calendar_event_id: calendarEvento.eventId })
+      .eq("id", id);
   }
 
   const emailResult = await notificarAgendamentoConfirmado(solicitacaoFinal);

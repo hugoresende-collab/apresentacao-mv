@@ -253,6 +253,49 @@ export async function solicitarNps(solicitacao: SolicitacaoDemo) {
   });
 }
 
+export async function notificarRemarcacao(
+  solicitacao: SolicitacaoDemo,
+  novaData: string,
+  novoHorarioInicio?: string,
+  novoHorarioFim?: string
+) {
+  const horaInfo = novoHorarioInicio && novoHorarioFim
+    ? ` de ${novoHorarioInicio} até ${novoHorarioFim}`
+    : "";
+
+  await Promise.all([
+    sendEmail({
+      to: solicitacao.gerente_conta_email || "naoconfigurado@example.com",
+      subject: `Demonstração remarcada — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      html: `
+        <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
+        <p>Sua demonstração foi <b>remarcada</b>.</p>
+        <ul>
+          <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+          <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+          <li><b>Nova data:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
+          <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
+        </ul>
+        <p>Acompanhe o status em <a href="${APP_URL}/minhas-solicitacoes">Minhas demonstrações</a>.</p>
+      `,
+    }),
+    sendEmail({
+      to: ADMINISTRATIVO_EMAILS[0],
+      subject: `[ADMIN] Demonstração remarcada — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      html: `
+        <p>Uma demonstração foi remarcada.</p>
+        <ul>
+          <li><b>Solicitante:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+          <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+          <li><b>Nova data:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
+          <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
+        </ul>
+        <p><a href="${APP_URL}/gestao">Ir para gestão</a></p>
+      `,
+    }),
+  ]);
+}
+
 export function emailStatus() {
   return { enabled: EMAIL_ENABLED };
 }

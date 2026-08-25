@@ -65,7 +65,9 @@ export interface SolicitacaoDemo {
   data_hora_agendada_fim: string | null;
   agendado_por: string | null;
   link_ou_local: string | null;
+  google_calendar_event_id: string | null;
   apresentador: string | null;
+  apresentador_id?: string | null;
   data_hora_realizada: string | null;
   motivo_cancelamento: string | null;
   created_at: string;

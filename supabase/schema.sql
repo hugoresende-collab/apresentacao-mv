@@ -51,6 +51,7 @@ create table if not exists solicitacoes_demo (
   data_hora_agendada_fim text,
   agendado_por text,
   link_ou_local text,
+  google_calendar_event_id text,
   apresentador text,
   data_hora_realizada timestamptz,
   motivo_cancelamento text,
