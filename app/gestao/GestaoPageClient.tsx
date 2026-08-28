@@ -178,7 +178,13 @@ function SolicitacaoCard({
   const [agendadoPor, setAgendadoPor] = useState(solicitacao.agendado_por || nomeUsuario);
   const [linkOuLocal, setLinkOuLocal] = useState(solicitacao.link_ou_local || "");
   const [apresentador, setApresentador] = useState(solicitacao.apresentador || "");
-  const [apresentadorId, setApresentadorId] = useState("");
+  const [apresentadorId, setApresentadorId] = useState(() => {
+    if (solicitacao.apresentador) {
+      const apres = apresentadores.find(a => a.nome === solicitacao.apresentador);
+      return apres?.id || "";
+    }
+    return "";
+  });
   const [salvando, setSalvando] = useState(false);
   const [confirmaCancelar, setConfirmaCancelar] = useState<"confirmar" | "motivo" | false>(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");

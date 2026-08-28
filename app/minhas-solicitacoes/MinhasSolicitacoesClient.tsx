@@ -379,12 +379,14 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
               Cancelar solicitação
             </button>
           )}
-          <button
-            onClick={handleDuplicar}
-            className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
-          >
-            Duplicar
-          </button>
+          {(solicitacao.status === "cancelada" || solicitacao.status === "solicitado" || solicitacao.status === "demo agendada") && (
+            <button
+              onClick={handleDuplicar}
+              className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+            >
+              Duplicar
+            </button>
+          )}
         </div>
       </div>
 

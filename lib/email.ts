@@ -266,14 +266,15 @@ export async function notificarRemarcacao(
   await Promise.all([
     sendEmail({
       to: solicitacao.gerente_conta_email || "naoconfigurado@example.com",
-      subject: `Demonstração remarcada — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      subject: `Solicitação de remarcação — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
       html: `
         <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
-        <p>Sua demonstração foi <b>remarcada</b>.</p>
+        <p>Uma <b>solicitação de remarcação</b> foi feita para sua demonstração.</p>
+        <p>A data será confirmada após análise do administrativo.</p>
         <ul>
           <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
           <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
-          <li><b>Nova data:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
+          <li><b>Nova data solicitada:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
           <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
         </ul>
         <p>Acompanhe o status em <a href="${APP_URL}/minhas-solicitacoes">Minhas demonstrações</a>.</p>
