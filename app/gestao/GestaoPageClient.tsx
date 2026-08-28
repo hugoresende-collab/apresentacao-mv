@@ -37,6 +37,14 @@ function calcularDataHoraFimPadrao(dataHoraInicio: string, solicitacao: Solicita
   return somarMinutos(dataHoraInicio, 60);
 }
 
+const MOTIVOS_CANCELAMENTO = [
+  "A pedido do cliente",
+  "Ausência do cliente e/ou GC",
+  "Necessidade interna",
+  "Falta de informações suficientes",
+  "Outro motivo",
+] as const;
+
 export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string }) {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[]>([]);
   const [apresentadores, setApresentadores] = useState<Apresentador[]>([]);
@@ -179,6 +187,7 @@ function SolicitacaoCard({
   const [horarioInicioRemarcar, setHorarioInicioRemarcar] = useState(solicitacao.horario_inicio_desejado || "");
   const [horarioFimRemarcar, setHorarioFimRemarcar] = useState(solicitacao.horario_fim_desejado || "");
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [motivoSelecionado, setMotivoSelecionado] = useState<string | null>(null);
 
   useEffect(() => {
     if (erroAcao) {
@@ -488,22 +497,49 @@ function SolicitacaoCard({
       {/* Modal de motivo do cancelamento */}
       {confirmaCancelar === "motivo" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xl max-w-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xl max-w-md">
             <h2 className="text-lg font-semibold text-slate-900 mb-2">Motivo do cancelamento</h2>
-            <p className="text-sm text-slate-600 mb-4">Por favor, informe o motivo do cancelamento:</p>
-            <label className="mb-6 flex flex-col gap-2">
-              <TextArea
-                value={motivoCancelamento}
-                onChange={(e) => setMotivoCancelamento(e.target.value)}
-                placeholder="Ex: Cliente não mais interessado, mudança de prioridade, etc..."
-                rows={4}
-              />
-            </label>
+            <p className="text-sm text-slate-600 mb-4">Por favor, selecione o motivo:</p>
+
+            <div className="space-y-2 mb-6">
+              {MOTIVOS_CANCELAMENTO.map((motivo) => (
+                <button
+                  key={motivo}
+                  onClick={() => {
+                    setMotivoSelecionado(motivo);
+                    if (motivo !== "Outro motivo") {
+                      setMotivoCancelamento(motivo);
+                    }
+                  }}
+                  className={`w-full px-4 py-2 text-left rounded-md text-sm font-medium transition-colors ${
+                    motivoSelecionado === motivo
+                      ? "bg-red-600 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  {motivo}
+                </button>
+              ))}
+            </div>
+
+            {motivoSelecionado === "Outro motivo" && (
+              <label className="mb-6 flex flex-col gap-2">
+                <span className="text-sm font-medium text-slate-700">Descreva o motivo:</span>
+                <TextArea
+                  value={motivoCancelamento}
+                  onChange={(e) => setMotivoCancelamento(e.target.value)}
+                  placeholder="Escreva o motivo do cancelamento..."
+                  rows={4}
+                />
+              </label>
+            )}
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setConfirmaCancelar(false);
                   setMotivoCancelamento("");
+                  setMotivoSelecionado(null);
                 }}
                 disabled={salvando}
                 className="rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
@@ -512,11 +548,15 @@ function SolicitacaoCard({
               </button>
               <button
                 onClick={async () => {
-                  await handleStatus("cancelada", motivoCancelamento);
+                  const motivoFinal = motivoSelecionado === "Outro motivo"
+                    ? motivoCancelamento
+                    : (motivoSelecionado || "");
+                  await handleStatus("cancelada", motivoFinal);
                   setConfirmaCancelar(false);
                   setMotivoCancelamento("");
+                  setMotivoSelecionado(null);
                 }}
-                disabled={salvando || !motivoCancelamento.trim()}
+                disabled={salvando || !motivoSelecionado || (motivoSelecionado === "Outro motivo" && !motivoCancelamento.trim())}
                 className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 Confirmar cancelamento

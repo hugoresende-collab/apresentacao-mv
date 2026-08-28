@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atualizarStatus, buscarSolicitacao } from "@/lib/repo";
-import { solicitarNps } from "@/lib/email";
+import { solicitarNps, notificarCancelamento } from "@/lib/email";
 import type { StatusSolicitacao } from "@/lib/types";
 
 const STATUS_VALIDOS: StatusSolicitacao[] = ["solicitado", "demo agendada", "realizada", "cancelada"];
@@ -34,6 +34,8 @@ export async function POST(
     let emailResult;
     if (status === "realizada") {
       emailResult = await solicitarNps(solicitacao);
+    } else if (status === "cancelada" && motivo_cancelamento) {
+      emailResult = await notificarCancelamento(solicitacao, motivo_cancelamento);
     }
 
     return NextResponse.json({ solicitacao, email: emailResult });

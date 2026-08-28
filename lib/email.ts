@@ -296,6 +296,29 @@ export async function notificarRemarcacao(
   ]);
 }
 
+export async function notificarCancelamento(
+  solicitacao: SolicitacaoDemo,
+  motivo: string
+) {
+  await Promise.all([
+    sendEmail({
+      to: solicitacao.gerente_conta_email || "naoconfigurado@example.com",
+      subject: `Demonstração cancelada — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      html: `
+        <p>Olá, ${solicitacao.gerente_conta_nome}!</p>
+        <p>Lamentamos informar que sua solicitação de demonstração foi <b>cancelada</b>.</p>
+        <ul>
+          <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+          <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+          <li><b>Motivo:</b> ${motivo}</li>
+          <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
+        </ul>
+        <p>Se tiver dúvidas, entre em contato conosco.</p>
+      `,
+    }),
+  ]);
+}
+
 export function emailStatus() {
   return { enabled: EMAIL_ENABLED };
 }
