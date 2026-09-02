@@ -267,7 +267,7 @@ export async function notificarRemarcacao(
   const emailsAdmin = ADMIN_EMAILS.map(email =>
     sendEmail({
       to: email,
-      subject: `[ADMIN] Solicitação de remarcação — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      subject: `Solicitação de remarcação — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
       html: `
         <p>Uma solicitação de remarcação foi feita.</p>
         <ul>
