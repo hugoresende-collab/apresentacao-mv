@@ -9,6 +9,7 @@ import { GoogleCalendarPicker } from "@/components/GoogleCalendarPicker";
 import { ErrorToast } from "@/components/ErrorToast";
 import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
 import { Avatar } from "@/components/Avatar";
+import { CodigoCopivel } from "@/components/CodigoCopivel";
 import type { SolicitacaoDemo, StatusSolicitacao, Apresentador } from "@/lib/types";
 
 function somarMinutos(dataHora: string, minutos: number): string {
@@ -324,9 +325,7 @@ function SolicitacaoCard({
           <p className="font-medium text-slate-900">
             {solicitacao.nome_instituicao} — {solicitacao.produto_apresentar}
             {solicitacao.codigo_solicitacao && (
-              <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono font-normal text-slate-500">
-                {solicitacao.codigo_solicitacao}
-              </span>
+              <CodigoCopivel codigo={solicitacao.codigo_solicitacao} />
             )}
           </p>
           <p className="flex items-center gap-1.5 text-sm text-slate-500">
