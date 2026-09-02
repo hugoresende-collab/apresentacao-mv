@@ -1,4 +1,5 @@
 import type { SolicitacaoDemo } from "./types";
+import { ADMIN_EMAILS } from "./types";
 
 const EMAIL_ENABLED = process.env.ENABLE_EMAIL === "true";
 const ADMINISTRATIVO_EMAILS = (process.env.ADMINISTRATIVO_EMAILS || "administrativo@mv.com.br").split(",").map(e => e.trim());
@@ -263,6 +264,24 @@ export async function notificarRemarcacao(
     ? ` de ${novoHorarioInicio} até ${novoHorarioFim}`
     : "";
 
+  const emailsAdmin = ADMIN_EMAILS.map(email =>
+    sendEmail({
+      to: email,
+      subject: `[ADMIN] Solicitação de remarcação — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      html: `
+        <p>Uma solicitação de remarcação foi feita.</p>
+        <ul>
+          <li><b>Solicitante:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+          <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+          <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+          <li><b>Nova data solicitada:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
+          <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
+        </ul>
+        <p><a href="${APP_URL}/gestao">Ir para gestão</a></p>
+      `,
+    })
+  );
+
   await Promise.all([
     sendEmail({
       to: solicitacao.gerente_conta_email || "naoconfigurado@example.com",
@@ -280,20 +299,7 @@ export async function notificarRemarcacao(
         <p>Acompanhe o status em <a href="${APP_URL}/minhas-solicitacoes">Minhas demonstrações</a>.</p>
       `,
     }),
-    sendEmail({
-      to: ADMINISTRATIVO_EMAILS[0],
-      subject: `[ADMIN] Demonstração remarcada — ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
-      html: `
-        <p>Uma demonstração foi remarcada.</p>
-        <ul>
-          <li><b>Solicitante:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
-          <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
-          <li><b>Nova data:</b> ${new Date(novaData).toLocaleDateString("pt-BR")}${horaInfo}</li>
-          <li><b>Código:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
-        </ul>
-        <p><a href="${APP_URL}/gestao">Ir para gestão</a></p>
-      `,
-    }),
+    ...emailsAdmin,
   ]);
 }
 
