@@ -1,6 +1,6 @@
 export const DUPLICAR_STORAGE_KEY = "duplicar-solicitacao";
 
-export type StatusSolicitacao = "solicitado" | "demo agendada" | "realizada" | "cancelada";
+export type StatusSolicitacao = "solicitado" | "remarcacao" | "demo agendada" | "realizada" | "cancelada";
 export type UserRole = "colaborador" | "admin" | "apresentador";
 
 export interface Apresentador {
