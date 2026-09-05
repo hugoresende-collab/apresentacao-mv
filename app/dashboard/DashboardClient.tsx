@@ -15,7 +15,7 @@ interface DashboardData {
 export default function DashboardClient() {
   const [dados, setDados] = useState<DashboardData | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [aba, setAba] = useState<"resumo" | "gerentes" | "regionais" | "apresentadores" | "solicitantes">("resumo");
+  const [aba, setAba] = useState<"resumo" | "gerentes" | "regionais" | "apresentadores" | "remarcacoes">("resumo");
 
   useEffect(() => {
     const carregar = async () => {
@@ -47,7 +47,7 @@ export default function DashboardClient() {
             { id: "gerentes", label: "👤 Por Gerente" },
             { id: "regionais", label: "🗺️ Por Regional" },
             { id: "apresentadores", label: "🎤 Apresentadores" },
-            { id: "solicitantes", label: "📝 Solicitantes" },
+            { id: "remarcacoes", label: "🔄 Remarcações" },
           ] as const
         ).map((tab) => (
           <button
@@ -76,8 +76,8 @@ export default function DashboardClient() {
       {/* Apresentadores */}
       {aba === "apresentadores" && <TabelaApresentadores dados={dados.apresentadores} />}
 
-      {/* Solicitantes */}
-      {aba === "solicitantes" && <TabelaSolicitantes dados={dados.solicitantes} />}
+      {/* Remarcações */}
+      {aba === "remarcacoes" && <TabelaRemarcacoes dados={dados.remarcacoes} />}
     </div>
   );
 }
@@ -117,12 +117,26 @@ function ResumoGeral({ dados, metricas }: any) {
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Status</h3>
           <div className="space-y-2">
-            {Object.entries(dados.porStatus).map(([status, count]: any) => (
-              <div key={status} className="flex justify-between text-sm">
-                <span className="text-gray-600 capitalize">{status}:</span>
-                <span className="font-medium">{count}</span>
-              </div>
-            ))}
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 capitalize">Solicitado:</span>
+              <span className="font-medium">{dados.porStatus.solicitado}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 capitalize">Remarcação:</span>
+              <span className="font-medium text-orange-600">{dados.porStatus.remarcacao}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 capitalize">Demo Agendada:</span>
+              <span className="font-medium">{dados.porStatus["demo agendada"]}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 capitalize">Realizada:</span>
+              <span className="font-medium text-green-600">{dados.porStatus.realizada}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 capitalize">Cancelada:</span>
+              <span className="font-medium text-red-600">{dados.porStatus.cancelada}</span>
+            </div>
           </div>
         </div>
 
@@ -284,6 +298,45 @@ function TabelaSolicitantes({ dados }: any) {
           <tr>
             <th className="px-6 py-3 text-left font-semibold text-slate-900">Solicitante</th>
             <th className="px-6 py-3 text-right font-semibold text-slate-900">Total</th>
+            <th className="px-6 py-3 text-right font-semibold text-slate-900">Realizadas</th>
+            <th className="px-6 py-3 text-right font-semibold text-slate-900">Canceladas</th>
+            <th className="px-6 py-3 text-right font-semibold text-slate-900">% Aprovação</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {ordenado.map((item: any) => (
+            <tr key={item.solicitante} className="hover:bg-gray-50">
+              <td className="px-6 py-3 text-slate-900 text-xs">{item.solicitante}</td>
+              <td className="px-6 py-3 text-right">{item.total}</td>
+              <td className="px-6 py-3 text-right text-green-600 font-medium">{item.realizadas}</td>
+              <td className="px-6 py-3 text-right text-red-600 font-medium">{item.canceladas}</td>
+              <td className="px-6 py-3 text-right">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  item.taxaAprovacao >= 70 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                }`}>
+                  {item.taxaAprovacao}%
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TabelaRemarcacoes({ dados }: any) {
+  const ordenado = Object.entries(dados || {})
+    .map(([solicitante, stats]: any) => ({ solicitante, ...stats }))
+    .sort((a, b) => b.total - a.total);
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="px-6 py-3 text-left font-semibold text-slate-900">Solicitante</th>
+            <th className="px-6 py-3 text-right font-semibold text-slate-900">Total de Remarcações</th>
             <th className="px-6 py-3 text-right font-semibold text-slate-900">Realizadas</th>
             <th className="px-6 py-3 text-right font-semibold text-slate-900">Canceladas</th>
             <th className="px-6 py-3 text-right font-semibold text-slate-900">% Aprovação</th>

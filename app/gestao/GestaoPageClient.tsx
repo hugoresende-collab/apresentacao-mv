@@ -85,6 +85,7 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
   const contadores = {
     todos: solicitacoes.length,
     solicitado: solicitacoes.filter((s) => s.status === "solicitado").length,
+    remarcacao: solicitacoes.filter((s) => s.status === "remarcacao").length,
     "demo agendada": solicitacoes.filter((s) => s.status === "demo agendada").length,
     realizada: solicitacoes.filter((s) => s.status === "realizada").length,
     cancelada: solicitacoes.filter((s) => s.status === "cancelada").length,
@@ -103,7 +104,7 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
       />
 
       <div className="flex gap-2 text-sm flex-wrap">
-        {(["todos", "solicitado", "demo agendada", "realizada", "cancelada"] as const).map((s) => {
+        {(["todos", "solicitado", "remarcacao", "demo agendada", "realizada", "cancelada"] as const).map((s) => {
           const contagem = contadores[s as keyof typeof contadores];
           const alertaSolicitado = s === "solicitado" && contagem > 0;
           return (

@@ -33,6 +33,7 @@ export async function GET() {
   const total = solicitacoes.length;
   const porStatus = {
     solicitado: solicitacoes.filter((s) => s.status === "solicitado").length,
+    remarcacao: solicitacoes.filter((s) => s.status === "remarcacao").length,
     "demo agendada": solicitacoes.filter((s) => s.status === "demo agendada").length,
     realizada: solicitacoes.filter((s) => s.status === "realizada").length,
     cancelada: solicitacoes.filter((s) => s.status === "cancelada").length,
@@ -143,6 +144,31 @@ export async function GET() {
       : 0;
   }
 
+  // ===== REMARCAÇÕES =====
+  const porRemarcacao: Record<string, any> = {};
+  const remarcacoes = solicitacoes.filter((s) => s.status === "remarcacao");
+  for (const s of remarcacoes) {
+    const key = `${s.gerente_conta_nome} (${s.gerente_conta_email})`;
+    if (!porRemarcacao[key]) {
+      porRemarcacao[key] = {
+        total: 0,
+        realizadas: 0,
+        canceladas: 0,
+        taxaAprovacao: 0,
+      };
+    }
+    porRemarcacao[key].total++;
+    // Quando uma remarcação é confirmada, volta para "demo agendada"
+    if (s.status === "demo agendada") porRemarcacao[key].realizadas++;
+    if (s.status === "cancelada") porRemarcacao[key].canceladas++;
+  }
+  for (const remarcacao in porRemarcacao) {
+    const stats = porRemarcacao[remarcacao];
+    stats.taxaAprovacao = stats.total > 0
+      ? Number(((stats.realizadas / stats.total) * 100).toFixed(1))
+      : 0;
+  }
+
   // ===== TICKET MÉDIO =====
   const temposRealizacao = realizadas
     .filter((s) => s.created_at && s.data_hora_realizada)
@@ -180,6 +206,7 @@ export async function GET() {
       regionais: porRegional,
       apresentadores: porApresentador,
       solicitantes: porSolicitante,
+      remarcacoes: porRemarcacao,
       metricas: {
         ticketMedioDias: ticketMedioDias ? Number(ticketMedioDias.toFixed(1)) : null,
         taxaOcupacaoAgenda: taxaOcupacao,

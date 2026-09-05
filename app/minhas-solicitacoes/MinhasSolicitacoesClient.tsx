@@ -16,6 +16,7 @@ import type { SolicitacaoDemo } from "@/lib/types";
 export default function MinhasSolicitacoesClient() {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [buscaCodigo, setBuscaCodigo] = useState("");
 
   const carregar = async () => {
     try {
@@ -84,11 +85,24 @@ export default function MinhasSolicitacoesClient() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {solicitacoes?.map((s) => (
-            <SolicitacaoRow key={s.id} solicitacao={s} />
-          ))}
-        </div>
+        <>
+          <TextInput
+            label="Buscar por código"
+            placeholder="Ex: SOL-2024-001"
+            value={buscaCodigo}
+            onChange={(e) => setBuscaCodigo(e.target.value)}
+          />
+          <div className="space-y-4">
+            {solicitacoes
+              ?.filter((s) =>
+                buscaCodigo === "" ||
+                s.codigo_solicitacao?.toLowerCase().includes(buscaCodigo.toLowerCase())
+              )
+              .map((s) => (
+                <SolicitacaoRow key={s.id} solicitacao={s} />
+              ))}
+          </div>
+        </>
       )}
     </div>
   );
