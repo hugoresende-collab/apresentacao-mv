@@ -11,7 +11,7 @@ import { ErrorToast } from "@/components/ErrorToast";
 import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
 import { CodigoCopivel } from "@/components/CodigoCopivel";
 import { DUPLICAR_STORAGE_KEY } from "@/lib/types";
-import type { SolicitacaoDemo } from "@/lib/types";
+import type { SolicitacaoDemo, StatusSolicitacao } from "@/lib/types";
 
 export default function MinhasSolicitacoesClient() {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[] | null>(null);
