@@ -9,6 +9,7 @@ interface DashboardData {
   regionais: Record<string, any>;
   apresentadores: Record<string, any>;
   solicitantes: Record<string, any>;
+  remarcacoes: Record<string, any>;
   metricas: any;
 }
 
