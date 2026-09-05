@@ -17,6 +17,7 @@ export default function MinhasSolicitacoesClient() {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [buscaCodigo, setBuscaCodigo] = useState("");
+  const [filtro, setFiltro] = useState<StatusSolicitacao | "todos">("todos");
 
   const carregar = async () => {
     try {
@@ -69,6 +70,21 @@ export default function MinhasSolicitacoesClient() {
     };
   }, []);
 
+  const contadores = {
+    todos: solicitacoes?.length || 0,
+    solicitado: solicitacoes?.filter((s) => s.status === "solicitado").length || 0,
+    remarcacao: solicitacoes?.filter((s) => s.status === "remarcacao").length || 0,
+    "demo agendada": solicitacoes?.filter((s) => s.status === "demo agendada").length || 0,
+    realizada: solicitacoes?.filter((s) => s.status === "realizada").length || 0,
+    cancelada: solicitacoes?.filter((s) => s.status === "cancelada").length || 0,
+  };
+
+  const filtradas = solicitacoes?.filter((s) => {
+    const matchStatus = filtro === "todos" || s.status === filtro;
+    const matchCodigo = buscaCodigo === "" || s.codigo_solicitacao?.toLowerCase().includes(buscaCodigo.toLowerCase());
+    return matchStatus && matchCodigo;
+  }) || [];
+
   return (
     <div className="space-y-6">
       <PageHeader titulo="Minhas solicitações" />
@@ -91,17 +107,39 @@ export default function MinhasSolicitacoesClient() {
             placeholder="Buscar por código da solicitação..."
             value={buscaCodigo}
             onChange={(e) => setBuscaCodigo(e.target.value)}
-            className="max-w-xs"
+            className="max-w-sm"
           />
+
+          <div className="flex gap-2 text-sm flex-wrap">
+            {(["todos", "solicitado", "remarcacao", "demo agendada", "realizada", "cancelada"] as const).map((s) => {
+              const contagem = contadores[s as keyof typeof contadores];
+              return (
+                <button
+                  key={s}
+                  onClick={() => setFiltro(s as any)}
+                  className={`rounded-full px-3 py-1 flex items-center gap-2 ${
+                    filtro === s
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  <span>{s === "todos" ? "Todos" : s[0].toUpperCase() + s.slice(1)}</span>
+                  <span
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${
+                      filtro === s ? "bg-slate-700" : "bg-slate-300"
+                    }`}
+                  >
+                    {contagem}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="space-y-4">
-            {solicitacoes
-              ?.filter((s) =>
-                buscaCodigo === "" ||
-                s.codigo_solicitacao?.toLowerCase().includes(buscaCodigo.toLowerCase())
-              )
-              .map((s) => (
-                <SolicitacaoRow key={s.id} solicitacao={s} />
-              ))}
+            {filtradas.map((s) => (
+              <SolicitacaoRow key={s.id} solicitacao={s} />
+            ))}
           </div>
         </>
       )}
