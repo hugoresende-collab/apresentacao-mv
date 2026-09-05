@@ -87,10 +87,11 @@ export default function MinhasSolicitacoesClient() {
       ) : (
         <>
           <TextInput
-            label="Buscar por código"
-            placeholder="Ex: SOL-2024-001"
+            type="text"
+            placeholder="Buscar por código da solicitação..."
             value={buscaCodigo}
             onChange={(e) => setBuscaCodigo(e.target.value)}
+            className="max-w-xs"
           />
           <div className="space-y-4">
             {solicitacoes
