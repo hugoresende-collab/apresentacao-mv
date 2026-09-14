@@ -60,23 +60,55 @@ export async function POST(
       }
     }
 
-    const res = await db
+    const obsAnterior = solicitacaoAnterior.observacoes || "";
+    const observacoesAtualizadas = obsAnterior.includes("[REMARCADA]")
+      ? obsAnterior
+      : obsAnterior ? `[REMARCADA] ${obsAnterior}` : "[REMARCADA]";
+
+    const dadosAtualizacaoBase = {
+      data_desejada: nova_data_desejada,
+      horario_inicio_desejado: horario_inicio_desejado || null,
+      horario_fim_desejado: horario_fim_desejado || null,
+      status: "remarcacao",
+      data_hora_agendada: null,
+      data_hora_agendada_fim: null,
+      google_calendar_event_id: null,
+      observacoes: observacoesAtualizadas,
+      updated_at: new Date().toISOString(),
+    };
+
+    let res = await db
       .from("solicitacoes_demo")
       .update({
-        data_desejada: nova_data_desejada,
-        horario_inicio_desejado: horario_inicio_desejado || null,
-        horario_fim_desejado: horario_fim_desejado || null,
-        status: "solicitado",
-        data_hora_agendada: null,
-        data_hora_agendada_fim: null,
-        google_calendar_event_id: null,
-        updated_at: new Date().toISOString(),
+        ...dadosAtualizacaoBase,
+        foi_remarcada: true,
+        total_remarcacoes: (solicitacaoAnterior.total_remarcacoes || 0) + 1,
       })
       .eq("id", id)
       .select()
       .single();
 
-    if (res.error) throw res.error;
+    if (res.error && (res.error.message?.includes("column") || res.error.code === "42703")) {
+      res = await db
+        .from("solicitacoes_demo")
+        .update(dadosAtualizacaoBase)
+        .eq("id", id)
+        .select()
+        .single();
+    }
+
+    if (res.error) {
+      if (res.error.code === "23514" || res.error.message?.includes("solicitacoes_demo_status_check")) {
+        return NextResponse.json(
+          {
+            error:
+              "O status 'remarcacao' precisa ser habilitado no Supabase. Execute o script 'supabase/migrations/009_adicionar_status_remarcacao.sql' no SQL Editor do Supabase.",
+          },
+          { status: 500 }
+        );
+      }
+      throw res.error;
+    }
 
     // Enviar emails
     await notificarRemarcacao(

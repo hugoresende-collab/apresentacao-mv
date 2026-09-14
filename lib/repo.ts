@@ -65,7 +65,11 @@ function normalizarNovaSolicitacao(input: NovaSolicitacaoInput): Record<string, 
   return normalizado;
 }
 
-async function supabaseRest<T>(table: string, method: string, options?: any): Promise<T> {
+async function supabaseRest<T>(
+  table: string,
+  method: string,
+  options?: { select?: string; filters?: Record<string, string>; data?: unknown }
+): Promise<T> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -267,7 +271,7 @@ export async function atualizarStatus(
 
     if (!url || !key) throw new Error("Missing credentials");
 
-    const update: any = { status, updated_at: nowIso() };
+    const update: Record<string, unknown> = { status, updated_at: nowIso() };
     if (status === "realizada") update.data_hora_realizada = nowIso();
     if (status === "cancelada" && motivo_cancelamento) update.motivo_cancelamento = motivo_cancelamento;
     if (apresentador) update.apresentador = apresentador;

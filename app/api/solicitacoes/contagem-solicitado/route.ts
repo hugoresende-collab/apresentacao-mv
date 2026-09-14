@@ -9,6 +9,9 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
   }
 
-  const count = await contarSolicitacoesPorStatus("solicitado");
-  return NextResponse.json({ count });
+  const [countSolicitado, countRemarcacao] = await Promise.all([
+    contarSolicitacoesPorStatus("solicitado"),
+    contarSolicitacoesPorStatus("remarcacao"),
+  ]);
+  return NextResponse.json({ count: countSolicitado + countRemarcacao });
 }

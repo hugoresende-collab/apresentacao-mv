@@ -122,7 +122,7 @@ export async function GET() {
   }
 
   // ===== PERFORMANCE SOLICITANTES =====
-  const porSolicitante: Record<string, any> = {};
+  const porSolicitante: Record<string, { total: number; realizadas: number; canceladas: number; taxaAprovacao: number }> = {};
   for (const s of solicitacoes) {
     const key = `${s.gerente_conta_nome} (${s.gerente_conta_email})`;
     if (!porSolicitante[key]) {
@@ -145,10 +145,14 @@ export async function GET() {
   }
 
   // ===== REMARCAÇÕES =====
-  const porRemarcacao: Record<string, any> = {};
-  const remarcacoes = solicitacoes.filter((s) => s.status === "remarcacao");
+  const porRemarcacao: Record<string, { total: number; realizadas: number; canceladas: number; taxaAprovacao: number }> = {};
+  const remarcacoes = solicitacoes.filter((s) =>
+    s.status === "remarcacao" ||
+    s.foi_remarcada === true ||
+    (typeof s.observacoes === "string" && s.observacoes.includes("[REMARCADA]"))
+  );
   for (const s of remarcacoes) {
-    const key = `${s.gerente_conta_nome} (${s.gerente_conta_email})`;
+    const key = `${s.gerente_conta_nome} (${s.gerente_conta_email || "sem email"})`;
     if (!porRemarcacao[key]) {
       porRemarcacao[key] = {
         total: 0,
@@ -158,8 +162,7 @@ export async function GET() {
       };
     }
     porRemarcacao[key].total++;
-    // Quando uma remarcação é confirmada, volta para "demo agendada"
-    if (s.status === "demo agendada") porRemarcacao[key].realizadas++;
+    if (s.status === "realizada") porRemarcacao[key].realizadas++;
     if (s.status === "cancelada") porRemarcacao[key].canceladas++;
   }
   for (const remarcacao in porRemarcacao) {

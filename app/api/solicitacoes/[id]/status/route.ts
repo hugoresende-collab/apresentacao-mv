@@ -3,7 +3,7 @@ import { atualizarStatus, buscarSolicitacao } from "@/lib/repo";
 import { solicitarNps, notificarCancelamento } from "@/lib/email";
 import type { StatusSolicitacao } from "@/lib/types";
 
-const STATUS_VALIDOS: StatusSolicitacao[] = ["solicitado", "demo agendada", "realizada", "cancelada"];
+const STATUS_VALIDOS: StatusSolicitacao[] = ["solicitado", "remarcacao", "demo agendada", "realizada", "cancelada"];
 
 export async function POST(
   request: NextRequest,

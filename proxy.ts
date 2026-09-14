@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/api/apresentadores/google-oauth/callback",
   "/termos-de-uso",
   "/politica-de-privacidade",
+  "/api/cron/verificar-fila",
 ];
 
 export function proxy(request: NextRequest) {

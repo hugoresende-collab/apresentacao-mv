@@ -70,6 +70,8 @@ export interface SolicitacaoDemo {
   apresentador_id?: string | null;
   data_hora_realizada: string | null;
   motivo_cancelamento: string | null;
+  foi_remarcada?: boolean | null;
+  total_remarcacoes?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -211,5 +213,5 @@ export const ADMIN_EMAILS = [
 ] as const;
 
 export function isAdmin(email: string): boolean {
-  return ADMIN_EMAILS.includes(email as any);
+  return (ADMIN_EMAILS as readonly string[]).includes(email);
 }

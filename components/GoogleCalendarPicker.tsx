@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface Evento {
   id: string;
@@ -23,13 +23,8 @@ export function GoogleCalendarPicker({
   const [erro, setErro] = useState<string | null>(null);
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
 
-  useEffect(() => {
+  const carregarEventos = useCallback(async () => {
     if (!dataSelecionada || !apresentadorId) return;
-
-    carregarEventos();
-  }, [dataSelecionada, apresentadorId]);
-
-  async function carregarEventos() {
     setCarregando(true);
     setErro(null);
     try {
@@ -45,25 +40,26 @@ export function GoogleCalendarPicker({
       const dataFimStr = dataFim.toISOString().split("T")[0];
 
       const url = `/api/apresentadores/calendar?apresentadorId=${apresentadorId}&dataInicio=${dataInicioStr}&dataFim=${dataFimStr}`;
-      console.log("Buscando eventos:", { url, apresentadorId, dataInicioStr, dataFimStr });
-
       const res = await fetch(url);
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Erro na resposta:", errorData);
         throw new Error(errorData.error || errorData.details || `Erro ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
-      console.log("Eventos carregados:", data.eventos?.length || 0);
       setEventos(data.eventos || []);
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
       setErro(error instanceof Error ? error.message : "Erro ao carregar agenda");
+    } finally {
+      setCarregando(false);
     }
-    setCarregando(false);
-  }
+  }, [dataSelecionada, apresentadorId]);
+
+  useEffect(() => {
+    carregarEventos();
+  }, [carregarEventos]);
 
   // Gerar horários disponíveis (ex: 09:00, 09:30, 10:00, etc.)
   const horarios = gerarHorarios();
@@ -95,7 +91,7 @@ export function GoogleCalendarPicker({
         if (inicioDiaLocal !== dataSelecionada) return;
 
         // Marcar todos os slots de 30 min entre início e fim como ocupados
-        let current = new Date(inicioDate);
+        const current = new Date(inicioDate);
         while (current < fimDate) {
           const h = String(current.getHours()).padStart(2, "0");
           const m = String(current.getMinutes()).padStart(2, "0");

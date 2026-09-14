@@ -50,7 +50,7 @@ export default function TermosDeusoPage() {
           <section>
             <h2 className="mb-3 text-xl font-semibold text-slate-900">4. Limitação de Responsabilidade</h2>
             <p>
-              A plataforma é fornecida "como está". A MV não se responsabiliza por interrupções, erros ou perdas de dados
+              A plataforma é fornecida &quot;como está&quot;. A MV não se responsabiliza por interrupções, erros ou perdas de dados
               decorrentes do uso ou impossibilidade de uso da plataforma.
             </p>
           </section>

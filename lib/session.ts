@@ -87,8 +87,11 @@ export function getSessionFromRequest(request: NextRequest): SessionUser | null 
   if (!token) return null;
   const payload = decodeSession(token);
   if (!payload) return null;
-  const { exp: _exp, jti: _jti, ...user } = payload;
-  return user;
+  return {
+    email: payload.email,
+    nome: payload.nome,
+    avatarUrl: payload.avatarUrl,
+  };
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -98,6 +101,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
   const payload = decodeSession(token);
   if (!payload) return null;
-  const { exp: _exp, jti: _jti, ...user } = payload;
-  return user;
+  return {
+    email: payload.email,
+    nome: payload.nome,
+    avatarUrl: payload.avatarUrl,
+  };
 }

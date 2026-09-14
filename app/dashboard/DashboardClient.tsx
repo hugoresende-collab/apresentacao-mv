@@ -8,7 +8,6 @@ interface DashboardData {
   gerentes: Record<string, any>;
   regionais: Record<string, any>;
   apresentadores: Record<string, any>;
-  solicitantes: Record<string, any>;
   remarcacoes: Record<string, any>;
   metricas: any;
 }
@@ -287,45 +286,6 @@ function TabelaApresentadores({ dados }: any) {
   );
 }
 
-function TabelaSolicitantes({ dados }: any) {
-  const ordenado = Object.entries(dados)
-    .map(([solicitante, stats]: any) => ({ solicitante, ...stats }))
-    .sort((a, b) => b.total - a.total);
-
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-6 py-3 text-left font-semibold text-slate-900">Solicitante</th>
-            <th className="px-6 py-3 text-right font-semibold text-slate-900">Total</th>
-            <th className="px-6 py-3 text-right font-semibold text-slate-900">Realizadas</th>
-            <th className="px-6 py-3 text-right font-semibold text-slate-900">Canceladas</th>
-            <th className="px-6 py-3 text-right font-semibold text-slate-900">% Aprovação</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {ordenado.map((item: any) => (
-            <tr key={item.solicitante} className="hover:bg-gray-50">
-              <td className="px-6 py-3 text-slate-900 text-xs">{item.solicitante}</td>
-              <td className="px-6 py-3 text-right">{item.total}</td>
-              <td className="px-6 py-3 text-right text-green-600 font-medium">{item.realizadas}</td>
-              <td className="px-6 py-3 text-right text-red-600 font-medium">{item.canceladas}</td>
-              <td className="px-6 py-3 text-right">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  item.taxaAprovacao >= 70 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                }`}>
-                  {item.taxaAprovacao}%
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function TabelaRemarcacoes({ dados }: any) {
   const ordenado = Object.entries(dados || {})
     .map(([solicitante, stats]: any) => ({ solicitante, ...stats }))
@@ -344,21 +304,29 @@ function TabelaRemarcacoes({ dados }: any) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {ordenado.map((item: any) => (
-            <tr key={item.solicitante} className="hover:bg-gray-50">
-              <td className="px-6 py-3 text-slate-900 text-xs">{item.solicitante}</td>
-              <td className="px-6 py-3 text-right">{item.total}</td>
-              <td className="px-6 py-3 text-right text-green-600 font-medium">{item.realizadas}</td>
-              <td className="px-6 py-3 text-right text-red-600 font-medium">{item.canceladas}</td>
-              <td className="px-6 py-3 text-right">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  item.taxaAprovacao >= 70 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                }`}>
-                  {item.taxaAprovacao}%
-                </span>
+          {ordenado.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">
+                Nenhuma remarcação registrada até o momento.
               </td>
             </tr>
-          ))}
+          ) : (
+            ordenado.map((item: any) => (
+              <tr key={item.solicitante} className="hover:bg-gray-50">
+                <td className="px-6 py-3 text-slate-900 text-xs">{item.solicitante}</td>
+                <td className="px-6 py-3 text-right font-medium">{item.total}</td>
+                <td className="px-6 py-3 text-right text-green-600 font-medium">{item.realizadas}</td>
+                <td className="px-6 py-3 text-right text-red-600 font-medium">{item.canceladas}</td>
+                <td className="px-6 py-3 text-right">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    item.taxaAprovacao >= 70 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {item.taxaAprovacao}%
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

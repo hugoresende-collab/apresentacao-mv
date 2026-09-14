@@ -1,17 +1,26 @@
 "use client";
 
-import { useEffect, useState, useLayoutEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput, TextArea } from "@/components/FormField";
+import { SearchInput } from "@/components/SearchInput";
 import { useRouter } from "next/navigation";
-import { NpsModal } from "@/components/NpsModal";
 import { ErrorToast } from "@/components/ErrorToast";
 import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
 import { CodigoCopivel } from "@/components/CodigoCopivel";
 import { DUPLICAR_STORAGE_KEY } from "@/lib/types";
 import type { SolicitacaoDemo, StatusSolicitacao } from "@/lib/types";
+
+const LABELS_STATUS: Record<StatusSolicitacao | "todos", string> = {
+  todos: "Todos",
+  solicitado: "Solicitado",
+  remarcacao: "Remarcação",
+  "demo agendada": "Demo Agendada",
+  realizada: "Realizada",
+  cancelada: "Cancelada",
+};
 
 export default function MinhasSolicitacoesClient() {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoDemo[] | null>(null);
@@ -81,9 +90,19 @@ export default function MinhasSolicitacoesClient() {
 
   const filtradas = solicitacoes?.filter((s) => {
     const matchStatus = filtro === "todos" || s.status === filtro;
-    const matchCodigo = buscaCodigo === "" || s.codigo_solicitacao?.toLowerCase().includes(buscaCodigo.toLowerCase());
+    const termo = buscaCodigo.trim().toLowerCase();
+    const matchCodigo =
+      termo === "" ||
+      (s.codigo_solicitacao?.toLowerCase().includes(termo) ?? false) ||
+      s.nome_instituicao.toLowerCase().includes(termo);
     return matchStatus && matchCodigo;
   }) || [];
+
+  const handleSolicitacaoAtualizada = (atualizada: SolicitacaoDemo) => {
+    setSolicitacoes((prev) =>
+      prev ? prev.map((s) => (s.id === atualizada.id ? atualizada : s)) : null
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -102,11 +121,10 @@ export default function MinhasSolicitacoesClient() {
         </div>
       ) : (
         <>
-          <TextInput
-            type="text"
+          <SearchInput
             placeholder="Buscar por código da solicitação..."
             value={buscaCodigo}
-            onChange={(e) => setBuscaCodigo(e.target.value)}
+            onChange={setBuscaCodigo}
             className="max-w-sm"
           />
 
@@ -116,17 +134,17 @@ export default function MinhasSolicitacoesClient() {
               return (
                 <button
                   key={s}
-                  onClick={() => setFiltro(s as any)}
-                  className={`rounded-full px-3 py-1 flex items-center gap-2 ${
+                  onClick={() => setFiltro(s)}
+                  className={`rounded-full px-3 py-1 flex items-center gap-2 transition-colors ${
                     filtro === s
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-200 text-slate-700"
+                      ? "bg-[#214B63] text-white"
+                      : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                   }`}
                 >
-                  <span>{s === "todos" ? "Todos" : s[0].toUpperCase() + s.slice(1)}</span>
+                  <span>{LABELS_STATUS[s]}</span>
                   <span
                     className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${
-                      filtro === s ? "bg-slate-700" : "bg-slate-300"
+                      filtro === s ? "bg-[#163242] text-white" : "bg-slate-300 text-slate-700"
                     }`}
                   >
                     {contagem}
@@ -138,7 +156,11 @@ export default function MinhasSolicitacoesClient() {
 
           <div className="space-y-4">
             {filtradas.map((s) => (
-              <SolicitacaoRow key={s.id} solicitacao={s} />
+              <SolicitacaoRow
+                key={s.id}
+                solicitacao={s}
+                onAtualizado={handleSolicitacaoAtualizada}
+              />
             ))}
           </div>
         </>
@@ -147,7 +169,13 @@ export default function MinhasSolicitacoesClient() {
   );
 }
 
-function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: SolicitacaoDemo }) {
+function SolicitacaoRow({
+  solicitacao: initialSolicitacao,
+  onAtualizado,
+}: {
+  solicitacao: SolicitacaoDemo;
+  onAtualizado?: (solicitacao: SolicitacaoDemo) => void;
+}) {
   const router = useRouter();
   const [solicitacao, setSolicitacao] = useState(initialSolicitacao);
   const [aberto, setAberto] = useState(false);
@@ -170,23 +198,17 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
     }
   }, [erroAcao]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setSolicitacao(initialSolicitacao);
     setNovaDataDesejada(initialSolicitacao.data_desejada);
     setHorarioInicio(initialSolicitacao.horario_inicio_desejado || "");
     setHorarioFim(initialSolicitacao.horario_fim_desejado || "");
   }, [initialSolicitacao]);
 
-  useEffect(() => {
-    if (solicitacao.status === "realizada") {
-      carregarNps();
-    }
-  }, [solicitacao.id, solicitacao.status]);
-
-  async function carregarNps() {
+  const carregarNps = useCallback(async (solicId: string) => {
     setCarregandoNps(true);
     try {
-      const res = await fetch(`/api/solicitacoes/${solicitacao.id}/nps`);
+      const res = await fetch(`/api/solicitacoes/${solicId}/nps`);
       const data = await res.json();
       if (data.nps) {
         setNpsDados(data.nps);
@@ -196,7 +218,13 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
     } finally {
       setCarregandoNps(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (solicitacao.status === "realizada") {
+      carregarNps(solicitacao.id);
+    }
+  }, [solicitacao.id, solicitacao.status, carregarNps]);
 
   async function handleCancelar() {
     setCancelando(true);
@@ -222,6 +250,7 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
       setSolicitacao(data.solicitacao);
       setMotivoCancelamento("");
       setConfirmaCancelar(false);
+      onAtualizado?.(data.solicitacao);
     } catch (e) {
       console.error("Erro ao cancelar:", e);
       setErroAcao("Não foi possível cancelar a solicitação. Tente novamente.");
@@ -255,6 +284,7 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
       setHorarioInicio(data.solicitacao.horario_inicio_desejado || "");
       setHorarioFim(data.solicitacao.horario_fim_desejado || "");
       setRemarcar(false);
+      onAtualizado?.(data.solicitacao);
     } catch (e) {
       console.error("Erro ao remarcar:", e);
       setErroAcao("Não foi possível remarcar a solicitação. Tente novamente.");
@@ -407,15 +437,7 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
               )}
             </div>
           )}
-          {solicitacao.status === "demo agendada" && (
-            <button
-              onClick={() => setRemarcar(true)}
-              className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200"
-            >
-              Remarcar
-            </button>
-          )}
-          {solicitacao.status === "solicitado" && (
+          {(solicitacao.status === "demo agendada" || solicitacao.status === "solicitado" || solicitacao.status === "remarcacao") && (
             <button
               onClick={() => setRemarcar(true)}
               className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200"
@@ -431,7 +453,7 @@ function SolicitacaoRow({ solicitacao: initialSolicitacao }: { solicitacao: Soli
               Cancelar solicitação
             </button>
           )}
-          {(solicitacao.status === "cancelada" || solicitacao.status === "solicitado" || solicitacao.status === "demo agendada") && (
+          {(solicitacao.status === "cancelada" || solicitacao.status === "solicitado" || solicitacao.status === "demo agendada" || solicitacao.status === "remarcacao") && (
             <button
               onClick={handleDuplicar}
               className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"

@@ -8,9 +8,19 @@ import { TextInput, TextArea } from "@/components/FormField";
 import { GoogleCalendarPicker } from "@/components/GoogleCalendarPicker";
 import { ErrorToast } from "@/components/ErrorToast";
 import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
+import { SearchInput } from "@/components/SearchInput";
 import { Avatar } from "@/components/Avatar";
 import { CodigoCopivel } from "@/components/CodigoCopivel";
 import type { SolicitacaoDemo, StatusSolicitacao, Apresentador } from "@/lib/types";
+
+const LABELS_STATUS: Record<StatusSolicitacao | "todos", string> = {
+  todos: "Todos",
+  solicitado: "Solicitado",
+  remarcacao: "Remarcação",
+  "demo agendada": "Demo Agendada",
+  realizada: "Realizada",
+  cancelada: "Cancelada",
+};
 
 function somarMinutos(dataHora: string, minutos: number): string {
   const [dataParte, horaParte] = dataHora.split("T");
@@ -95,34 +105,33 @@ export default function GestaoPageClient({ nomeUsuario }: { nomeUsuario: string 
     <div className="space-y-6">
       <PageHeader titulo="Gestão de demonstrações" />
 
-      <TextInput
-        type="text"
+      <SearchInput
         placeholder="Buscar por código da solicitação..."
         value={buscaCodigo}
-        onChange={(e) => setBuscaCodigo(e.target.value)}
-        className="max-w-xs"
+        onChange={setBuscaCodigo}
+        className="max-w-sm"
       />
 
       <div className="flex gap-2 text-sm flex-wrap">
         {(["todos", "solicitado", "remarcacao", "demo agendada", "realizada", "cancelada"] as const).map((s) => {
           const contagem = contadores[s as keyof typeof contadores];
-          const alertaSolicitado = s === "solicitado" && contagem > 0;
+          const alertaPendente = (s === "solicitado" || s === "remarcacao") && contagem > 0;
           return (
             <button
               key={s}
-              onClick={() => setFiltro(s as any)}
-              className={`rounded-full px-3 py-1 flex items-center gap-2 ${
-                alertaSolicitado
+              onClick={() => setFiltro(s)}
+              className={`rounded-full px-3 py-1 flex items-center gap-2 transition-all ${
+                alertaPendente
                   ? `bg-red-600 text-white animate-pulse ${filtro === s ? "ring-2 ring-red-900" : ""}`
                   : filtro === s
                   ? "bg-slate-900 text-white"
-                  : "bg-slate-200 text-slate-700"
+                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
               }`}
             >
-              <span>{s === "todos" ? "Todos" : s[0].toUpperCase() + s.slice(1)}</span>
+              <span>{LABELS_STATUS[s]}</span>
               <span
                 className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${
-                  alertaSolicitado ? "bg-red-800" : filtro === s ? "bg-slate-700" : "bg-slate-300"
+                  alertaPendente ? "bg-red-800 text-white" : filtro === s ? "bg-slate-700 text-white" : "bg-slate-300 text-slate-700"
                 }`}
               >
                 {contagem}
@@ -286,7 +295,7 @@ function SolicitacaoCard({
 
   async function handleStatus(status: StatusSolicitacao, motivoCancelamentoInformado?: string) {
     setSalvando(true);
-    const body: any = { status };
+    const body: { status: StatusSolicitacao; apresentador?: string; motivo_cancelamento?: string } = { status };
     if (status === "realizada" && apresentador) {
       body.apresentador = apresentador;
     }
@@ -395,7 +404,7 @@ function SolicitacaoCard({
                 </label>
               </div>
 
-              {solicitacao.status === "solicitado" && (
+              {(solicitacao.status === "solicitado" || solicitacao.status === "remarcacao") && (
                 <div className="space-y-3">
                   <div className="rounded-md bg-blue-50 p-3">
                     <label className="flex flex-col gap-1">
@@ -432,7 +441,7 @@ function SolicitacaoCard({
           )}
 
           <div className="flex flex-wrap gap-2">
-            {solicitacao.status === "solicitado" && (
+            {(solicitacao.status === "solicitado" || solicitacao.status === "remarcacao") && (
               <button
                 onClick={handleAgendar}
                 disabled={salvando || !dataHora || !dataHoraFim || dataHoraFim <= dataHora || !apresentador}
