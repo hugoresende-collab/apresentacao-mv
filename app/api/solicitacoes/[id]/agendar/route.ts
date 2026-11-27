@@ -50,6 +50,7 @@ async function criarEventoNoCalendario(
         description: [
           `Código da solicitação: ${solicitacao.codigo_solicitacao || "-"}`,
           `Produto: ${solicitacao.produto_apresentar}`,
+          `Apresentador: ${solicitacao.apresentador || apresentador.nome || "a definir"}`,
           `Gerente de conta: ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})`,
           solicitacao.observacao_apresentacao ? `Observação: ${solicitacao.observacao_apresentacao}` : "",
         ]

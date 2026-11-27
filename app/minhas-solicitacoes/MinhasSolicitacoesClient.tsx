@@ -421,6 +421,7 @@ function SolicitacaoRow({
                   : "-"
               }
             />
+            <Info label="Apresentador" value={solicitacao.apresentador || "-"} />
             <Info label="Local/link" value={solicitacao.link_ou_local || "-"} />
           </dl>
         ) : (
