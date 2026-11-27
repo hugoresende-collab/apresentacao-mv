@@ -394,6 +394,11 @@ function SolicitacaoRow({
               {solicitacao.cidade} · solicitado em{" "}
               {new Date(solicitacao.created_at).toLocaleDateString("pt-BR")}
             </p>
+            {solicitacao.apresentador && (solicitacao.status === "demo agendada" || solicitacao.status === "realizada") && (
+              <p className="mt-1 text-xs font-semibold text-emerald-600">
+                Apresentador: {solicitacao.apresentador}
+              </p>
+            )}
           </div>
           <div className="flex-shrink-0 pt-1">
             <StatusBadge status={solicitacao.status} />

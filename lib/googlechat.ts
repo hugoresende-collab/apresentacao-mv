@@ -5,7 +5,8 @@ const WEBHOOK_URL = process.env.GOOGLE_CHAT_WEBHOOK_URL || "";
 const WEBHOOK_FILA_URL = process.env.GOOGLE_CHAT_WEBHOOK_FILA_URL || "";
 
 export async function notificarNovaSolicitacaoNoChat(
-  solicitacao: SolicitacaoDemo
+  solicitacao: SolicitacaoDemo,
+  opcoes?: { remarcadaDeCodigo?: string | null }
 ): Promise<{ sent: boolean; reason?: string }> {
   if (!CHAT_ENABLED) {
     console.log(`[google chat desligado] Nova solicitação: ${solicitacao.nome_instituicao}`);
@@ -22,8 +23,9 @@ export async function notificarNovaSolicitacaoNoChat(
     .join(", ");
 
   const texto = [
-    "*Nova solicitação de demonstração*",
+    opcoes?.remarcadaDeCodigo ? "*Nova solicitação de demonstração (remarcação)*" : "*Nova solicitação de demonstração*",
     `*Código:* ${solicitacao.codigo_solicitacao || "-"}`,
+    ...(opcoes?.remarcadaDeCodigo ? [`*Substitui a solicitação:* ${opcoes.remarcadaDeCodigo}`] : []),
     `*Gerente de conta:* ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})`,
     `*Instituição:* ${solicitacao.nome_instituicao} (${solicitacao.cidade})`,
     `*Produto:* ${solicitacao.produto_apresentar}`,

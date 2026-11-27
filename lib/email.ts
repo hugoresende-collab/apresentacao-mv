@@ -131,24 +131,42 @@ function resumoSolicitacaoHtml(solicitacao: SolicitacaoDemo): string {
   `;
 }
 
-export async function notificarNovaSolicitacaoAoSolicitante(solicitacao: SolicitacaoDemo) {
+export interface OpcoesNovaSolicitacao {
+  /** Codigo da solicitacao anterior, quando esta nova solicitacao nasceu de uma remarcacao. */
+  remarcadaDeCodigo?: string | null;
+}
+
+function avisoRemarcacaoHtml(opcoes?: OpcoesNovaSolicitacao): string {
+  if (!opcoes?.remarcadaDeCodigo) return "";
+  return `<p><b>Remarcação:</b> esta solicitação substitui a anterior de código <b>${opcoes.remarcadaDeCodigo}</b>.</p>`;
+}
+
+export async function notificarNovaSolicitacaoAoSolicitante(
+  solicitacao: SolicitacaoDemo,
+  opcoes?: OpcoesNovaSolicitacao
+) {
   return sendEmail({
     to: solicitacao.gerente_conta_email,
-    subject: `Recebemos sua solicitação de demo: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+    subject: `${opcoes?.remarcadaDeCodigo ? "Remarcação recebida" : "Recebemos sua solicitação de demo"}: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
     html: `
       <p>Olá, ${solicitacao.gerente_conta_nome}! Recebemos sua solicitação de demonstração e o time da hospitalar vai analisar e agendar em breve.</p>
+      ${avisoRemarcacaoHtml(opcoes)}
       ${resumoSolicitacaoHtml(solicitacao)}
     `,
   });
 }
 
-export async function notificarNovaSolicitacaoAoAdministrativo(solicitacao: SolicitacaoDemo) {
+export async function notificarNovaSolicitacaoAoAdministrativo(
+  solicitacao: SolicitacaoDemo,
+  opcoes?: OpcoesNovaSolicitacao
+) {
   const promises = ADMINISTRATIVO_EMAILS.map(email =>
     sendEmail({
       to: email,
-      subject: `Nova solicitação de demo: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+      subject: `${opcoes?.remarcadaDeCodigo ? "Nova solicitação de demo (remarcação)" : "Nova solicitação de demo"}: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
       html: `
         <p>Nova solicitação de demonstração recebida.</p>
+        ${avisoRemarcacaoHtml(opcoes)}
         ${resumoSolicitacaoHtml(solicitacao)}
         <p><a href="${APP_URL}/gestao">Agendar esta demonstração</a></p>
       `,
@@ -165,6 +183,7 @@ export async function notificarAgendamentoConfirmado(solicitacao: SolicitacaoDem
   const emailContent = `
     <h2>Demonstração Agendada!</h2>
     <p>Sua solicitação de demonstração foi agendada com sucesso.</p>
+    ${solicitacao.apresentador ? `<p><b>Apresentador:</b> ${solicitacao.apresentador}</p>` : ""}
 
     <h3>Detalhes:</h3>
     <ul>

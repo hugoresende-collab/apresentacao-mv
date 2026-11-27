@@ -128,6 +128,20 @@ function gerarCodigoSolicitacao(dataIso: string): string {
   return `SD-${data}-${sufixo}`;
 }
 
+// Gera um codigo (SD-AAAAMMDD-XXXX) que ainda nao exista, usado tambem ao remarcar uma
+// solicitacao (que passa a valer como uma nova solicitacao, com novo codigo).
+export async function gerarCodigoSolicitacaoUnico(): Promise<string> {
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    const codigo = gerarCodigoSolicitacao(nowIso());
+    const existentes = await supabaseRest<{ id: string }[]>("solicitacoes_demo", "GET", {
+      select: "id",
+      filters: { codigo_solicitacao: codigo },
+    });
+    if (!Array.isArray(existentes) || existentes.length === 0) return codigo;
+  }
+  return gerarCodigoSolicitacao(nowIso());
+}
+
 export async function criarSolicitacao(rawInput: NovaSolicitacaoInput): Promise<SolicitacaoDemo> {
   const input = normalizarNovaSolicitacao(rawInput);
   const now = nowIso();

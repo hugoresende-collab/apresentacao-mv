@@ -274,6 +274,7 @@ function SolicitacaoCard({
 
   async function handleRemarcar() {
     setSalvando(true);
+    try {
     const res = await fetch(`/api/solicitacoes/${solicitacao.id}/remarcar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -284,13 +285,22 @@ function SolicitacaoCard({
       }),
     });
     const data = await res.json();
+    if (!res.ok || !data?.solicitacao) {
+      setErroAcao(data?.error || "Não foi possível remarcar a solicitação. Tente novamente.");
+      setSalvando(false);
+      return;
+    }
     setSolicitacao({ ...data.solicitacao });
     setNovaDataDesejada(data.solicitacao.data_desejada);
     setHorarioInicioRemarcar(data.solicitacao.horario_inicio_desejado || "");
     setHorarioFimRemarcar(data.solicitacao.horario_fim_desejado || "");
-    setSalvando(false);
     setRemarcar(false);
     setTimeout(() => onAtualizado(), 500);
+    } catch (e) {
+      console.error("Erro ao remarcar:", e);
+      setErroAcao("Não foi possível remarcar a solicitação. Atualize a página e tente novamente.");
+    }
+    setSalvando(false);
   }
 
   async function handleStatus(status: StatusSolicitacao, motivoCancelamentoInformado?: string) {
@@ -348,7 +358,7 @@ function SolicitacaoCard({
           {solicitacao.apresentador && (
             <div className="mt-1 space-y-1">
               <p className="text-xs font-semibold text-emerald-600">
-                👤 Apresentador: {solicitacao.apresentador}
+                Apresentador: {solicitacao.apresentador}
               </p>
               {solicitacao.data_hora_agendada && (
                 <p className="text-xs text-blue-600 font-medium">

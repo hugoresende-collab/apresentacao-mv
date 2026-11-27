@@ -1,8 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getDb } from "@/lib/db";
-import { buscarSolicitacao } from "@/lib/repo";
-import { notificarRemarcacao } from "@/lib/email";
+import { buscarSolicitacao, gerarCodigoSolicitacaoUnico } from "@/lib/repo";
+import {
+  notificarNovaSolicitacaoAoSolicitante,
+  notificarNovaSolicitacaoAoAdministrativo,
+} from "@/lib/email";
+import { notificarNovaSolicitacaoNoChat } from "@/lib/googlechat";
 import { cancelCalendarEvent } from "@/lib/google-calendar";
+
+async function notificarComFallback<T>(
+  label: string,
+  promise: Promise<T>
+): Promise<T | { sent: false; reason: string }> {
+  try {
+    return await promise;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`Falha ao notificar remarcação (${label}): ${reason}`);
+    return { sent: false, reason };
+  }
+}
+
+// Mantém a lista de códigos anteriores no marcador "[REMARCADA de A, B]" das observações.
+function montarObservacoesRemarcada(observacoes: string, codigoAnterior: string | null): string {
+  const marcador = /^\[REMARCADA(?: de ([^\]]+))?\]\s*/;
+  const m = observacoes.match(marcador);
+  const anteriores = m && m[1] ? m[1].split(",").map((c) => c.trim()).filter(Boolean) : [];
+  const resto = observacoes.replace(marcador, "").trim();
+  if (codigoAnterior && !anteriores.includes(codigoAnterior)) anteriores.push(codigoAnterior);
+  const novoMarcador = anteriores.length > 0 ? `[REMARCADA de ${anteriores.join(", ")}]` : "[REMARCADA]";
+  return resto ? `${novoMarcador} ${resto}` : novoMarcador;
+}
 
 export async function POST(
   request: NextRequest,
@@ -60,21 +88,28 @@ export async function POST(
       }
     }
 
-    const obsAnterior = solicitacaoAnterior.observacoes || "";
-    const observacoesAtualizadas = obsAnterior.includes("[REMARCADA]")
-      ? obsAnterior
-      : obsAnterior ? `[REMARCADA] ${obsAnterior}` : "[REMARCADA]";
+    // Remarcar vale como uma NOVA solicitação: novo código, volta para a fila ("solicitado")
+    // e dispara novamente Google Chat e e-mails. (Não usa o status "remarcacao", que exigia
+    // uma constraint extra no banco.)
+    const codigoAnterior = solicitacaoAnterior.codigo_solicitacao || null;
+    const codigoNovo = await gerarCodigoSolicitacaoUnico();
+    const agora = new Date().toISOString();
 
     const dadosAtualizacaoBase = {
+      codigo_solicitacao: codigoNovo,
       data_desejada: nova_data_desejada,
+      data_desejada_2: null,
+      data_desejada_3: null,
       horario_inicio_desejado: horario_inicio_desejado || null,
       horario_fim_desejado: horario_fim_desejado || null,
-      status: "remarcacao",
+      status: "solicitado",
+      apresentador: null,
       data_hora_agendada: null,
       data_hora_agendada_fim: null,
       google_calendar_event_id: null,
-      observacoes: observacoesAtualizadas,
-      updated_at: new Date().toISOString(),
+      observacoes: montarObservacoesRemarcada(solicitacaoAnterior.observacoes || "", codigoAnterior),
+      created_at: agora,
+      updated_at: agora,
     };
 
     let res = await db
@@ -88,6 +123,7 @@ export async function POST(
       .select()
       .single();
 
+    // Colunas de métrica (migration 009) ainda não criadas: remarca sem elas.
     if (res.error && (res.error.message?.includes("column") || res.error.code === "42703")) {
       res = await db
         .from("solicitacoes_demo")
@@ -98,27 +134,29 @@ export async function POST(
     }
 
     if (res.error) {
-      if (res.error.code === "23514" || res.error.message?.includes("solicitacoes_demo_status_check")) {
-        return NextResponse.json(
-          {
-            error:
-              "O status 'remarcacao' precisa ser habilitado no Supabase. Execute o script 'supabase/migrations/009_adicionar_status_remarcacao.sql' no SQL Editor do Supabase.",
-          },
-          { status: 500 }
-        );
-      }
-      throw res.error;
+      console.error("Erro ao atualizar solicitação na remarcação:", res.error);
+      return NextResponse.json(
+        { error: `Não foi possível remarcar: ${res.error.message || "erro ao salvar no banco"}` },
+        { status: 500 }
+      );
     }
 
-    // Enviar emails
-    await notificarRemarcacao(
-      res.data,
-      nova_data_desejada,
-      horario_inicio_desejado,
-      horario_fim_desejado
-    );
+    // Reenvia as mesmas mensagens de uma nova solicitação (Google Chat + e-mails) DEPOIS de
+    // responder: o envio por SMTP pode demorar e estourar o tempo da função na Vercel.
+    const opcoesNotificacao = { remarcadaDeCodigo: codigoAnterior };
+    const solicitacaoAtualizada = res.data;
+    after(async () => {
+      await Promise.all([
+        notificarComFallback("email solicitante", notificarNovaSolicitacaoAoSolicitante(solicitacaoAtualizada, opcoesNotificacao)),
+        notificarComFallback("email administrativo", notificarNovaSolicitacaoAoAdministrativo(solicitacaoAtualizada, opcoesNotificacao)),
+        notificarComFallback("google chat", notificarNovaSolicitacaoNoChat(solicitacaoAtualizada, opcoesNotificacao)),
+      ]);
+    });
 
-    return NextResponse.json({ solicitacao: res.data });
+    return NextResponse.json({
+      solicitacao: res.data,
+      codigo_anterior: codigoAnterior,
+    });
   } catch (error) {
     console.error("Erro ao remarcar:", error);
     return NextResponse.json(
