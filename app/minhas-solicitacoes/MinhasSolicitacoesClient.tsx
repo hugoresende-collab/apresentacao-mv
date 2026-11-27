@@ -394,7 +394,7 @@ function SolicitacaoRow({
               {solicitacao.cidade} · solicitado em{" "}
               {new Date(solicitacao.created_at).toLocaleDateString("pt-BR")}
             </p>
-            {solicitacao.apresentador && (solicitacao.status === "demo agendada" || solicitacao.status === "realizada") && (
+            {solicitacao.apresentador && solicitacao.status !== "cancelada" && (
               <p className="mt-1 text-xs font-semibold text-emerald-600">
                 Apresentador: {solicitacao.apresentador}
               </p>

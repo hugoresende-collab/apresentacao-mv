@@ -178,3 +178,111 @@ export async function createCalendarEvent(
     throw error;
   }
 }
+
+function linhaApresentador(descricao: string | null | undefined, nome: string): string {
+  const linha = `Apresentador: ${nome}`;
+  const base = descricao || "";
+  if (/^Apresentador:.*$/m.test(base)) return base.replace(/^Apresentador:.*$/m, linha);
+  return base ? `${base}\n${linha}` : linha;
+}
+
+/**
+ * Troca o apresentador de um evento JÁ EXISTENTE, sem apagá-lo (convidados que o gerente
+ * adicionou e o link do Meet são preservados).
+ *
+ * 1) Tenta MOVER o evento para a agenda do novo apresentador (ele passa a ser o organizador e
+ *    o evento sai da agenda do anterior). Exige que o dono atual do evento tenha permissão de
+ *    edição na agenda do novo apresentador.
+ * 2) Se não for possível, mantém o evento onde está e troca os PARTICIPANTES: adiciona o novo
+ *    apresentador e remove o anterior, quando ele é apenas convidado (o organizador, dono da
+ *    agenda, não pode ser removido por API).
+ */
+export async function trocarApresentadorNoEvento(params: {
+  accessToken: string;
+  refreshToken: string | null;
+  onTokenRefreshed?: (novoAccessToken: string) => Promise<void> | void;
+  calendarIdAtual: string;
+  eventId: string;
+  novoCalendarId: string;
+  novoEmail: string;
+  novoNome: string;
+  emailAnterior?: string | null;
+}): Promise<{ modo: "movido" | "convidado"; motivoFallback?: string }> {
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  auth.setCredentials({
+    access_token: params.accessToken,
+    refresh_token: params.refreshToken || undefined,
+  });
+  if (params.onTokenRefreshed) {
+    auth.on("tokens", (tokens) => {
+      if (tokens.access_token) {
+        Promise.resolve(params.onTokenRefreshed!(tokens.access_token)).catch((e) =>
+          console.error("Erro ao persistir access_token renovado:", e)
+        );
+      }
+    });
+  }
+
+  const emailAnterior = (params.emailAnterior || "").toLowerCase();
+  const novoEmail = params.novoEmail.toLowerCase();
+
+  const evento = (
+    await calendar.events.get({ auth, calendarId: params.calendarIdAtual, eventId: params.eventId })
+  ).data;
+  const descricao = linhaApresentador(evento.description, params.novoNome);
+
+  // Participantes: remove o apresentador anterior (se for só convidado)
+  const participantesBase = (evento.attendees || []).filter(
+    (a) => a.organizer || !emailAnterior || (a.email || "").toLowerCase() !== emailAnterior
+  );
+
+  // 1) Tenta mover o evento para a agenda do novo apresentador
+  let motivoFallback: string | undefined;
+  try {
+    await calendar.events.move({
+      auth,
+      calendarId: params.calendarIdAtual,
+      eventId: params.eventId,
+      destination: params.novoCalendarId,
+      sendUpdates: "none",
+    });
+
+    try {
+      await calendar.events.patch({
+        auth,
+        calendarId: params.novoCalendarId,
+        eventId: params.eventId,
+        sendUpdates: "none",
+        requestBody: {
+          description: descricao,
+          attendees: participantesBase.filter((a) => (a.email || "").toLowerCase() !== novoEmail),
+        },
+      });
+    } catch (e) {
+      console.error("Evento movido, mas falhou ao atualizar descrição/participantes:", e);
+    }
+    return { modo: "movido" };
+  } catch (error) {
+    motivoFallback = error instanceof Error ? error.message : String(error);
+    console.warn("Não foi possível mover o evento para o novo apresentador; trocando participantes:", motivoFallback);
+  }
+
+  // 2) Mantém o evento e troca os participantes
+  const jaConvidado = participantesBase.some((a) => (a.email || "").toLowerCase() === novoEmail);
+  const participantes = jaConvidado
+    ? participantesBase
+    : [...participantesBase, { email: params.novoEmail, displayName: params.novoNome }];
+
+  await calendar.events.patch({
+    auth,
+    calendarId: params.calendarIdAtual,
+    eventId: params.eventId,
+    sendUpdates: "none",
+    requestBody: { description: descricao, attendees: participantes },
+  });
+
+  return { modo: "convidado", motivoFallback };
+}

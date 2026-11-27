@@ -348,3 +348,31 @@ export async function notificarCancelamento(
 export function emailStatus() {
   return { enabled: EMAIL_ENABLED };
 }
+
+export async function notificarNovoApresentador(
+  solicitacao: SolicitacaoDemo,
+  emailApresentador: string,
+  apresentadorAnterior?: string | null
+) {
+  const googleMeetLink = `https://meet.google.com/${solicitacao.id.substring(0, 21)}`;
+  return sendEmail({
+    to: emailApresentador,
+    subject: `Você é o novo apresentador: ${solicitacao.nome_instituicao} [${solicitacao.codigo_solicitacao || "s/ código"}]`,
+    html: `
+      <h2>Você foi definido como apresentador desta demonstração</h2>
+      ${apresentadorAnterior ? `<p>Ela estava com <b>${apresentadorAnterior}</b> e foi repassada para você.</p>` : ""}
+
+      <h3>Detalhes:</h3>
+      <ul>
+        <li><b>Código da solicitação:</b> ${solicitacao.codigo_solicitacao || "-"}</li>
+        <li><b>Instituição:</b> ${solicitacao.nome_instituicao}</li>
+        <li><b>Gerente de Conta:</b> ${solicitacao.gerente_conta_nome} (${solicitacao.gerente_conta_email})</li>
+        <li><b>Produto:</b> ${solicitacao.produto_apresentar}</li>
+        <li><b>Data/Hora:</b> ${solicitacao.data_hora_agendada ? new Date(solicitacao.data_hora_agendada).toLocaleString("pt-BR") : "a definir"}${solicitacao.data_hora_agendada_fim ? ` até ${new Date(solicitacao.data_hora_agendada_fim).toLocaleTimeString("pt-BR")}` : ""}</li>
+        <li><b>Tipo:</b> ${solicitacao.tipo_apresentacao}</li>
+        <li><b>Local/Link:</b> ${solicitacao.link_ou_local || googleMeetLink}</li>
+      </ul>
+      <p>O evento no Google Calendar foi atualizado e você deve vê-lo na sua agenda.</p>
+    `,
+  });
+}

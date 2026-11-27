@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TextInput, TextArea } from "@/components/FormField";
 import { GoogleCalendarPicker } from "@/components/GoogleCalendarPicker";
 import { ErrorToast } from "@/components/ErrorToast";
+import { SuccessToast } from "@/components/SuccessToast";
 import { SolicitacaoDetalhes } from "@/components/SolicitacaoDetalhes";
 import { SearchInput } from "@/components/SearchInput";
 import { Avatar } from "@/components/Avatar";
@@ -204,7 +205,17 @@ function SolicitacaoCard({
   const [horarioInicioRemarcar, setHorarioInicioRemarcar] = useState(solicitacao.horario_inicio_desejado || "");
   const [horarioFimRemarcar, setHorarioFimRemarcar] = useState(solicitacao.horario_fim_desejado || "");
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [sucessoAcao, setSucessoAcao] = useState<string | null>(null);
+  const [trocandoApresentador, setTrocandoApresentador] = useState(false);
+  const [novoApresentadorId, setNovoApresentadorId] = useState("");
   const [motivoSelecionado, setMotivoSelecionado] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sucessoAcao) {
+      const timer = setTimeout(() => setSucessoAcao(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [sucessoAcao]);
 
   useEffect(() => {
     if (erroAcao) {
@@ -268,6 +279,43 @@ function SolicitacaoCard({
     } catch (e) {
       console.error("Erro ao confirmar agendamento:", e);
       setErroAcao("Não foi possível confirmar o agendamento. Tente novamente.");
+    }
+    setSalvando(false);
+  }
+
+  async function handleTrocarApresentador() {
+    if (!novoApresentadorId) return;
+    setSalvando(true);
+    try {
+      const res = await fetch(`/api/solicitacoes/${solicitacao.id}/apresentador`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apresentador_id: novoApresentadorId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.solicitacao) {
+        setErroAcao(data?.error || "Não foi possível alterar o apresentador. Tente novamente.");
+        setSalvando(false);
+        return;
+      }
+      setSolicitacao({ ...data.solicitacao });
+      setApresentador(data.solicitacao.apresentador || "");
+      setApresentadorId(novoApresentadorId);
+      setTrocandoApresentador(false);
+      setNovoApresentadorId("");
+
+      const cal = data.calendario as { status: string; modo?: string; motivo?: string } | undefined;
+      if (cal?.status === "erro") {
+        setErroAcao(`Apresentador alterado, mas o evento do Google Calendar não foi atualizado (${cal.motivo || "motivo desconhecido"}). Ajuste manualmente.`);
+      } else if (cal?.modo === "convidado") {
+        setSucessoAcao("Apresentador alterado. O evento foi mantido e o novo apresentador foi adicionado como participante; o apresentador anterior continua como organizador da agenda dele, remova-o manualmente se necessário.");
+      } else {
+        setSucessoAcao("Apresentador alterado e evento do Google Calendar atualizado.");
+      }
+      setTimeout(() => onAtualizado(), 500);
+    } catch (e) {
+      console.error("Erro ao alterar apresentador:", e);
+      setErroAcao("Não foi possível alterar o apresentador. Tente novamente.");
     }
     setSalvando(false);
   }
@@ -339,6 +387,7 @@ function SolicitacaoCard({
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       {erroAcao && <ErrorToast titulo="Erro" mensagem={erroAcao} />}
+      {sucessoAcao && <SuccessToast titulo="Apresentador alterado" mensagem={sucessoAcao} />}
 
       <button className="flex w-full items-start justify-between gap-4 text-left" onClick={() => setAberto(!aberto)}>
         <div className="flex-1">
@@ -476,6 +525,13 @@ function SolicitacaoCard({
                 >
                   Remarcar
                 </button>
+                <button
+                  onClick={() => setTrocandoApresentador(true)}
+                  disabled={salvando}
+                  className="rounded-md bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
+                >
+                  Alterar apresentador
+                </button>
               </>
             )}
             {solicitacao.status !== "cancelada" && solicitacao.status !== "realizada" && (
@@ -585,6 +641,52 @@ function SolicitacaoCard({
                 className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 Confirmar cancelamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de alterar apresentador */}
+      {trocandoApresentador && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xl max-w-sm w-full">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Alterar apresentador</h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Apresentador atual: <b>{solicitacao.apresentador || "-"}</b>. O evento do Google Calendar é mantido
+              (os convidados não são perdidos) e o novo apresentador recebe um e-mail.
+            </p>
+            <label className="flex flex-col gap-2 mb-6">
+              <span className="text-sm font-medium text-slate-700">Novo apresentador</span>
+              <select
+                value={novoApresentadorId}
+                onChange={(e) => setNovoApresentadorId(e.target.value)}
+                className="rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecione um apresentador</option>
+                {apresentadores
+                  .filter((a) => a.nome !== solicitacao.apresentador)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nome} {a.google_calendar_token ? "📅" : ""}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setTrocandoApresentador(false); setNovoApresentadorId(""); }}
+                disabled={salvando}
+                className="rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleTrocarApresentador}
+                disabled={salvando || !novoApresentadorId}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {salvando ? "Salvando..." : "Confirmar troca"}
               </button>
             </div>
           </div>
